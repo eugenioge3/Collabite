@@ -41,10 +41,16 @@ def get_engine():
     global _engine
     if _engine is None:
         creds = _get_db_credentials()
-        database_url = (
-            f"postgresql://{creds['username']}:{creds['password']}"
-            f"@{creds['host']}:{creds['port']}/{creds['dbname']}"
-        )
+        if creds["password"]:
+            database_url = (
+                f"postgresql://{creds['username']}:{creds['password']}"
+                f"@{creds['host']}:{creds['port']}/{creds['dbname']}"
+            )
+        else:
+            database_url = (
+                f"postgresql://{creds['username']}"
+                f"@{creds['host']}:{creds['port']}/{creds['dbname']}"
+            )
         _engine = create_engine(
             database_url,
             pool_pre_ping=True,

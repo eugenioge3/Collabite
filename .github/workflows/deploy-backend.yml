@@ -1,11 +1,7 @@
 name: Deploy Backend
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - 'terraform/**'
+  workflow_dispatch:
 
 permissions:
   id-token: write
