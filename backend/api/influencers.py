@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -18,7 +20,7 @@ def search_influencers(
     niche: Niche | None = Query(None),
     min_followers: int = Query(0, ge=0),
     max_followers: int | None = Query(None, ge=0),
-    sort_by: str = Query("followers_instagram", regex="^(followers_instagram|followers_tiktok|engagement_rate)$"),
+    sort_by: str = Query("followers_instagram", pattern="^(followers_instagram|followers_tiktok|engagement_rate)$"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),

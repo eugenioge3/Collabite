@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import boto3
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
