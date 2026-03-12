@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Build artifacts
+.build/
+dist/
+frontend/dist/
+frontend/build/
+*.zip
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Test
+.coverage
+htmlcov/
+.pytest_cache/

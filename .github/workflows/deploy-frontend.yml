@@ -1,0 +1,48 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install & Build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to S3
+        run: aws s3 sync frontend/dist/ s3://collabite-frontend-dev --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='collabite dev'].Id" --output text)
+          if [ -n "$DIST_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+          fi

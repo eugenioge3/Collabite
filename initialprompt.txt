@@ -1,0 +1,281 @@
+# Collabite (nombre puede cambiar) — Plataforma de Marketing Local para Negocios e Influencers
+
+## Contexto del proyecto
+
+Estamos construyendo una plataforma SaaS desde cero. Es un marketplace que conecta restaurantes (y negocios de hospitality) con influencers locales de forma segura, rápida y verificada.
+
+El desarrollador soy yo (fullstack / data engineer). Trabajo en macOS, uso VS Code con GitHub Copilot, y mi stack principal es Python.
+
+## Principios de ingeniería NO NEGOCIABLES
+
+1. **Infrastructure as Code**: TODO en Terraform. Cero recursos manuales en AWS. Roles IAM, políticas, buckets, tablas, Lambdas, API Gateway, Cognito, CloudFront — todo declarado en .tf files.
+2. **Deploy automatizado**: Scripts de deploy que ejecutan `terraform apply` + build + upload. Sin pasos manuales.
+3. **AWS only**: Toda la infraestructura en AWS (us-east-1).
+4. **Web first → Mobile después**: Empezamos como web app responsive. Cuando esté validada, migramos a iOS/Android (React Native + Expo).
+5. **Monorepo**: Un solo repositorio Git con estructura clara (backend/, frontend/, terraform/, shared/, scripts/).
+6. **Seguridad desde el día 1**: Auth robusto, verificación de identidad, escrow de pagos, rate limiting, CORS estricto.
+
+## Arquitectura objetivo
+
+```
+Frontend:  React + TypeScript + Tailwind CSS (S3 + CloudFront)
+Backend:   Python Lambda functions (API Gateway HTTP API v2)
+Auth:      AWS Cognito (2 user pools: businesses + influencers, o 1 pool con custom:role)
+Database:  DynamoDB (NoSQL) o PostgreSQL (Aurora Serverless v2) — recomienda la mejor opción
+Storage:   S3 (logos, media, profile photos)
+Payments:  Stripe Connect (escrow/marketplace payments)
+CDN:       CloudFront
+IaC:       Terraform (modules reutilizables)
+CI/CD:     GitHub Actions (build + terraform plan/apply)
+```
+
+## Modelo de negocio
+
+Dos tipos de cuenta:
+- **Negocio** (restaurante, bar, hotel): Publica campañas, busca influencers, paga colaboraciones
+- **Influencer**: Crea perfil, se postula a campañas, recibe pagos
+
+### Flujo principal de una campaña:
+
+1. Restaurante crea una campaña: "3 Reels + comida para 2 · $4,000 MXN · Cancún · Nicho: Food"
+2. Restaurante **deposita el pago** (escrow vía Stripe) antes de que la campaña sea visible
+3. Influencers verificados ven la campaña (NO ven el nombre del restaurante, solo: ciudad, nicho, presupuesto, requisitos)
+4. Influencers se postulan y envian un mensaje
+5. Restaurante revisa postulaciones (ve perfil, stats, engagement, portafolio)
+6. Restaurante selecciona 1 o más influencers
+7. Influencer seleccionado ve los datos del restaurante + instrucciones
+8. Influencer cumple el deliverable (sube links del contenido publicado)
+9. Restaurante confirma cumplimiento → se libera el pago al influencer
+10. Si hay disputa → sistema de mediación / timeout automático (pago se libera después de X días si el restaurante no responde)
+
+
+### Monetización:
+
+1. **Comisión por campaña**: 10-15% sobre el monto de cada campaña completada
+2. **Version premium**: (idea pendiente)
+
+Nota: se debe de evitar que se pueda hacer el trato por fuera de la plataforma. Una opción sería solo cobrar la comisión pero no será reembolsable, en caso de confirmarse al influencer entonces se cobra la totalidad. Podemos evaluar opciones.
+
+## Verificación de cuentas (CRÍTICO)
+
+### Verificación de influencer:
+- OAuth con Instagram / TikTok para confirmar que la cuenta es suya
+- Verificación de email
+- Stats reales extraídos de la API (no self-reported)
+- Badge de "Verificado" visible en su perfil
+
+### Verificación de negocio:
+- Email corporativo o dominio propio
+- Google Business Profile link (verificar que el negocio existe)
+- Tarjeta de pago válida en Stripe
+- Opcional: RFC / registro fiscal
+- OAuth con Instagram / TikTok para confirmar que la cuenta es suya
+
+## Database schema (punto de partida)
+
+### users
+- id (PK, UUID)
+- email (unique)
+- role (enum: business, influencer)
+- cognito_sub
+- verified (boolean)
+- created_at, updated_at
+
+### business_profiles
+- user_id (PK, FK → users)
+- business_name
+- category (restaurant, bar, hotel, cafe)
+- city, state, country
+- google_maps_url
+- logo_url
+- description
+- stripe_customer_id
+- verified (boolean)
+- subscription_status (free, active, canceled)
+- created_at, updated_at
+
+### influencer_profiles
+- user_id (PK, FK → users)
+- display_name
+- bio
+- city, state, country
+- niche (food, nightlife, travel, lifestyle, fitness)
+- instagram_handle, tiktok_handle, youtube_handle
+- followers_instagram, followers_tiktok, followers_youtube
+- engagement_rate
+- audience_demographics (JSON: age ranges, gender split, top cities)
+- profile_photo_url
+- portfolio_urls (JSON array)
+- estimated_price_per_post (calculated)
+- stripe_account_id (Stripe Connect)
+- verified (boolean)
+- subscription_status (free, active, canceled)
+- created_at, updated_at
+
+### campaigns
+- id (PK, UUID)
+- business_user_id (FK → users)
+- title
+- description
+- budget (amount in MXN)
+- currency (MXN, USD)
+- city, state
+- niche_required (food, nightlife, travel)
+- min_followers
+- max_followers
+- deliverables (JSON: [{type: "reel", quantity: 3}, {type: "story", quantity: 5}])
+- includes (JSON: ["free_meal", "paid_collab"])
+- status (enum: draft, funded, active, in_progress, completed, canceled, disputed)
+- stripe_payment_intent_id
+- escrow_funded (boolean)
+- deadline (date)
+- max_applicants
+- created_at, updated_at
+
+### campaign_applications
+- id (PK, UUID)
+- campaign_id (FK → campaigns)
+- influencer_user_id (FK → users)
+- status (enum: pending, accepted, rejected, completed, disputed)
+- message (text — pitch del influencer)
+- deliverable_links (JSON array — links al contenido publicado)
+- payout_amount
+- payout_status (enum: pending, released, disputed)
+- created_at, updated_at
+
+### reviews
+- id (PK, UUID)
+- reviewer_user_id (FK)
+- reviewed_user_id (FK)
+- campaign_id (FK)
+- rating (1-5)
+- comment
+- created_at
+
+## API Endpoints (REST)
+
+### Auth
+- POST /api/auth/register (email, password, role)
+- POST /api/auth/login
+- POST /api/auth/verify-email
+- POST /api/auth/forgot-password
+- GET /api/auth/me
+
+### Influencer profiles
+- GET /api/influencers (search: city, niche, min_followers, max_followers, sort_by)
+- GET /api/influencers/:id
+- PUT /api/influencers/me (update own profile)
+- POST /api/influencers/verify-instagram (OAuth flow)
+
+### Business profiles
+- GET /api/businesses/:id
+- PUT /api/businesses/me
+- POST /api/businesses/verify
+
+### Campaigns
+- POST /api/campaigns (create + fund escrow)
+- GET /api/campaigns (search: city, niche, budget range — influencer view, no business name)
+- GET /api/campaigns/:id
+- PUT /api/campaigns/:id (business owner only)
+- POST /api/campaigns/:id/cancel
+
+### Applications
+- POST /api/campaigns/:id/apply (influencer)
+- GET /api/campaigns/:id/applications (business owner)
+- PUT /api/applications/:id/accept (business)
+- PUT /api/applications/:id/reject (business)
+- PUT /api/applications/:id/submit-deliverables (influencer)
+- PUT /api/applications/:id/approve-deliverables (business → release payment)
+- PUT /api/applications/:id/dispute
+
+### Payments
+- POST /api/payments/create-setup-intent (save card)
+- POST /api/payments/fund-campaign/:id
+- GET /api/payments/history
+
+### Rankings & Discovery
+- GET /api/rankings/influencers?city=cancun&niche=food (público, para SEO)
+
+## Pantallas (web app)
+
+### Públicas (sin login):
+- Landing page con CTA para negocios e influencers
+- Ranking: "Top Food Influencers — Cancún" (SEO)
+- Login / Register (selector de rol: negocio o influencer)
+
+### Dashboard Influencer:
+- Mi perfil (stats, engagement, precio estimado)
+- Campañas disponibles (feed filtrable por ciudad/nicho)
+- Mis postulaciones (status de cada una)
+- Mis pagos (historial Stripe)
+
+### Dashboard Negocio:
+- Mi perfil de negocio
+- Crear campaña (wizard: detalles → presupuesto → pago → publicar)
+- Mis campañas (activas, completadas, borradores)
+- Postulaciones recibidas (con perfil del influencer)
+- Historial de pagos
+
+## Feature: Calculadora de precio
+
+Visible en el perfil de cada influencer:
+```
+price_per_post = followers × engagement_rate × 0.02
+```
+Ejemplo: 20,000 followers × 4% engagement = $160 USD estimado por post
+
+## Consideraciones adicionales importantes
+
+1. **Rate limiting**: Proteger endpoints públicos (búsqueda, rankings)
+2. **Notifications**: Email transaccional (SES) para: nueva postulación, campaña aceptada, pago liberado, disputa
+3. **Soft delete**: No borrar datos, marcar como deleted
+4. **Audit trail**: Log de acciones importantes (pagos, cambios de status)
+5. **Content moderation**: Revisar perfiles/campañas antes de publicar (v2)
+6. **Multi-currency**: MXN como default, USD como opción
+7. **Timezone**: UTC como default y se acomoda en base de la ubicación del usuario. Si no hay ubicación, default de Ciudad de México.
+8. **i18n**: Español como idioma principal, inglés como secundario (v2)
+
+## Estructura del repositorio
+
+```
+Collabite/
+├── frontend/          ← React + TypeScript + Tailwind
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── tsconfig.json
+├── backend/           ← Python Lambda functions
+│   ├── api/           ← Lambda handlers por recurso
+│   ├── core/          ← Business logic compartida
+│   ├── models/        ← Schema/validation (Pydantic)
+│   └── requirements.txt
+├── terraform/
+│   ├── modules/       ← Reutilizables (lambda, api-gw, dynamo, cognito, s3, cloudfront, iam)
+│   ├── environments/
+│   │   └── dev/
+│   └── scripts/       ← deploy.sh, destroy.sh
+├── shared/            ← Tipos compartidos, API contract
+├── scripts/           ← Seed data, utilities
+├── .github/
+│   └── workflows/     ← CI/CD
+└── README.md
+```
+
+## INSTRUCCIONES PARA EL AGENTE
+
+1. Empezar por: Terraform base (provider, S3 backend state, Cognito, DynamoDB/Aurora, API Gateway, IAM roles)
+2. Luego: Lambda functions para auth (register, login, verify)
+3. Luego: CRUD de perfiles (influencer + business)
+4. Luego: CRUD de campañas + aplicaciones
+5. Luego: Frontend (React app con routing, auth flow, dashboards)
+6. Luego: Stripe integration (escrow, payouts)
+7. Luego: Rankings públicos + SEO pages
+
+Pregúntame antes de empezar:
+- ¿PostgreSQL (Aurora Serverless) o DynamoDB? Recomienda con pros/cons para este caso.
+- ¿Un solo Cognito User Pool con custom:role, o dos pools separados?
+- ¿Monolambda (1 Lambda para todo el API) o multi-Lambda (1 por recurso)?
+- ¿Alguna consideración de seguridad o feature que debería agregar?
+
+NO empieces a codear hasta que yo confirme las decisiones de arquitectura.
+```

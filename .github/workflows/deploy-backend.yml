@@ -1,0 +1,68 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'terraform/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.5'
+
+      - name: Build Lambda package
+        run: |
+          cd backend
+          pip install -r requirements.txt -t ../.build/lambda --quiet
+          cp -r api core models ../.build/lambda/
+          cd ../.build/lambda
+          zip -r ../../.build/api.zip . -x "*.pyc" "__pycache__/*" > /dev/null
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp .build/api.zip s3://collabite-lambda-deploy-dev/lambda/api.zip
+
+      - name: Terraform Init
+        working-directory: terraform/environments/dev
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: terraform/environments/dev
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform/environments/dev
+        run: terraform apply -auto-approve tfplan
+
+      - name: Update Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name collabite-api-dev \
+            --s3-bucket collabite-lambda-deploy-dev \
+            --s3-key lambda/api.zip \
+            --publish
