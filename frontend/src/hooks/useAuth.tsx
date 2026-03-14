@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import api from '../lib/api';
 import type { User, UserRole } from '../lib/types';
 
@@ -6,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  devLogin: (role: UserRole) => Promise<void>;
   register: (email: string, password: string, role: UserRole) => Promise<string>;
   logout: () => void;
 }
@@ -42,6 +44,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(me.data);
   };
 
+  const devLogin = async (role: UserRole) => {
+    const demoEmail = role === 'business'
+      ? 'business.demo@example.com'
+      : 'influencer.demo@example.com';
+
+    const res = await api.post('/auth/dev-login', {
+      email: demoEmail,
+      role,
+    });
+
+    const { access_token, id_token, refresh_token } = res.data;
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('id_token', id_token);
+    localStorage.setItem('refresh_token', refresh_token);
+
+    const me = await api.get('/auth/me');
+    setUser(me.data);
+  };
+
   const register = async (email: string, password: string, role: UserRole) => {
     const res = await api.post('/auth/register', { email, password, role });
     return res.data.message;
@@ -55,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, devLogin, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

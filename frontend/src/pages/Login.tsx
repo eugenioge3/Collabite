@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import type { UserRole } from '../lib/types';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, devLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [devLoadingRole, setDevLoadingRole] = useState<UserRole | null>(null);
+  const isDev = import.meta.env.DEV;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +26,19 @@ export default function Login() {
       setError(err.response?.data?.detail || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDevLogin = async (role: UserRole) => {
+    setError('');
+    setDevLoadingRole(role);
+    try {
+      await devLogin(role);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Error al iniciar demo local');
+    } finally {
+      setDevLoadingRole(null);
     }
   };
 
@@ -93,6 +109,30 @@ export default function Login() {
             Regístrate
           </Link>
         </p>
+
+        {isDev && (
+          <div className="mt-8 border-t pt-5">
+            <p className="text-xs text-gray-500 mb-3">Acceso rápido local (modo demo)</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleDevLogin('influencer')}
+                disabled={!!devLoadingRole || loading}
+                className="px-4 py-2 rounded-lg border hover:border-primary text-sm font-medium transition disabled:opacity-50"
+              >
+                {devLoadingRole === 'influencer' ? 'Entrando...' : 'Entrar demo Influencer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDevLogin('business')}
+                disabled={!!devLoadingRole || loading}
+                className="px-4 py-2 rounded-lg border hover:border-primary text-sm font-medium transition disabled:opacity-50"
+              >
+                {devLoadingRole === 'business' ? 'Entrando...' : 'Entrar demo Negocio'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
