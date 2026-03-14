@@ -96,6 +96,12 @@ export default function InfluencerDashboard() {
         >
           Mis aplicaciones
         </Link>
+        <Link
+          to="/dashboard/influencer/verify"
+          className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition"
+        >
+          Verificar Instagram/TikTok
+        </Link>
       </div>
     </div>
   );

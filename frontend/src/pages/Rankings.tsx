@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
-import type { InfluencerProfile, Niche } from '../lib/types';
-import { Trophy, MapPin, Instagram } from 'lucide-react';
+import type { InfluencerPublicRanking, Niche } from '../lib/types';
+import { Trophy, MapPin, ShieldCheck } from 'lucide-react';
 
 const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
 
 export default function Rankings() {
-  const [influencers, setInfluencers] = useState<InfluencerProfile[]>([]);
+  const [influencers, setInfluencers] = useState<InfluencerPublicRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState('');
   const [niche, setNiche] = useState('');
@@ -15,6 +15,7 @@ export default function Rankings() {
     setLoading(true);
     const params = new URLSearchParams();
     params.set('sort', 'followers');
+    params.set('sort_by', 'followers_instagram');
     params.set('limit', '50');
     if (city.trim()) params.set('city', city.trim());
     if (niche) params.set('niche', niche);
@@ -31,16 +32,17 @@ export default function Rankings() {
     fetchRankings();
   };
 
-  const totalFollowers = (inf: InfluencerProfile) =>
-    inf.followers_instagram + inf.followers_tiktok + inf.followers_youtube;
-
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2 flex items-center justify-center gap-2">
           <Trophy className="text-secondary" /> Rankings de Influencers
         </h1>
-        <p className="text-gray-500">Los mejores creadores de contenido gastronómico y de hospitalidad</p>
+        <p className="text-gray-500">Descubre talento top sin exponer contacto directo fuera de la plataforma</p>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-800">
+        Ranking público anonimizado: los datos de contacto solo se desbloquean dentro del flujo de Collabite.
       </div>
 
       {/* Filters */}
@@ -66,7 +68,7 @@ export default function Rankings() {
       ) : (
         <div className="space-y-3">
           {influencers.map((inf, i) => (
-            <div key={inf.user_id}
+            <div key={`${inf.alias}-${i}`}
               className="bg-white border rounded-lg p-4 flex items-center gap-4 hover:border-primary transition">
               {/* Rank */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
@@ -80,12 +82,12 @@ export default function Rankings() {
 
               {/* Avatar placeholder */}
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold shrink-0">
-                {inf.display_name ? inf.display_name[0].toUpperCase() : '?'}
+                {inf.alias ? inf.alias[0].toUpperCase() : '?'}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold truncate">{inf.display_name || 'Sin nombre'}</h3>
+                <h3 className="font-semibold truncate">{inf.alias || 'Creator'}</h3>
                 <div className="flex items-center gap-3 text-sm text-gray-500 mt-0.5">
                   {inf.city && (
                     <span className="flex items-center gap-0.5"><MapPin size={12} />{inf.city}</span>
@@ -93,16 +95,17 @@ export default function Rankings() {
                   {inf.niche && (
                     <span className="capitalize">{inf.niche}</span>
                   )}
-                  {inf.instagram_handle && (
-                    <span className="flex items-center gap-0.5"><Instagram size={12} />{inf.instagram_handle}</span>
+                  {inf.verified && (
+                    <span className="flex items-center gap-0.5"><ShieldCheck size={12} />Verificado</span>
                   )}
                 </div>
               </div>
 
-              {/* Followers */}
+              {/* Metrics (ranges only) */}
               <div className="text-right shrink-0">
-                <div className="text-lg font-bold text-primary">{totalFollowers(inf).toLocaleString()}</div>
-                <div className="text-xs text-gray-400">seguidores totales</div>
+                <div className="text-sm font-bold text-primary">{inf.followers_range}</div>
+                <div className="text-xs text-gray-400">seguidores</div>
+                <div className="text-xs text-gray-500 mt-0.5">ER {inf.engagement_range}</div>
               </div>
             </div>
           ))}
@@ -113,8 +116,8 @@ export default function Rankings() {
       <div className="mt-12 text-center text-sm text-gray-400 max-w-2xl mx-auto">
         <p>
           Collabite conecta a los mejores influencers de gastronomía, bares, hoteles y vida nocturna
-          con negocios locales en toda Latinoamérica. Descubre los creadores de contenido con mayor
-          alcance y engagement en tu ciudad.
+          con negocios locales en toda Latinoamérica. Los perfiles públicos están anonimizados para
+          proteger conexiones comerciales y evitar desintermediación.
         </p>
       </div>
     </div>

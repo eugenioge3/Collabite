@@ -26,6 +26,7 @@ export default function CreateCampaign() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitMode, setSubmitMode] = useState<'draft' | 'publish'>('publish');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -48,10 +49,10 @@ export default function CreateCampaign() {
     setForm((f) => ({ ...f, deliverables: f.deliverables.filter((_, idx) => idx !== i) }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitCampaign = async (mode: 'draft' | 'publish' = 'publish') => {
     setError('');
     setLoading(true);
+    setSubmitMode(mode);
     try {
       const payload = {
         title: form.title,
@@ -67,6 +68,7 @@ export default function CreateCampaign() {
         max_applicants: form.max_applicants ? parseInt(form.max_applicants) : null,
         deliverables: form.deliverables.filter((d) => d.type.trim()),
         includes: form.includes.filter((i) => i.trim()),
+        publish_now: mode === 'publish',
       };
       const res = await api.post('/campaigns', payload);
       navigate(`/dashboard/business/campaigns/${res.data.id}`);
@@ -77,13 +79,18 @@ export default function CreateCampaign() {
     }
   };
 
+  const handlePublishSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitCampaign('publish');
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Nueva campaña</h1>
 
       {error && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handlePublishSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Título *</label>
           <input name="title" value={form.title} onChange={handleChange} required
@@ -162,11 +169,26 @@ export default function CreateCampaign() {
             className="text-primary text-sm hover:underline">+ Agregar entregable</button>
         </div>
 
-        <button type="submit" disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition disabled:opacity-50">
-          {loading ? <Loader className="animate-spin" size={18} /> : null}
-          {loading ? 'Creando...' : 'Crear campaña'}
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => submitCampaign('draft')}
+            className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+          >
+            {loading && submitMode === 'draft' ? <Loader className="animate-spin" size={18} /> : null}
+            {loading && submitMode === 'draft' ? 'Guardando...' : 'Guardar borrador'}
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition disabled:opacity-50"
+          >
+            {loading && submitMode === 'publish' ? <Loader className="animate-spin" size={18} /> : null}
+            {loading && submitMode === 'publish' ? 'Publicando...' : 'Publicar campaña'}
+          </button>
+        </div>
       </form>
     </div>
   );

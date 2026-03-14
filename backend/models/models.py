@@ -78,6 +78,18 @@ class Currency(str, enum.Enum):
     USD = "USD"
 
 
+class VerificationPlatform(str, enum.Enum):
+    instagram = "instagram"
+    tiktok = "tiktok"
+
+
+class VerificationStatus(str, enum.Enum):
+    pending = "pending"
+    verified = "verified"
+    rejected = "rejected"
+    expired = "expired"
+
+
 # ── Mixin ──────────────────────────────────────────────────────────────────────
 
 
@@ -133,6 +145,10 @@ class BusinessProfile(TimestampMixin, SoftDeleteMixin, Base):
     description = Column(Text)
     stripe_customer_id = Column(String(255))
     verified = Column(Boolean, default=False)
+    instagram_handle = Column(String(255))
+    instagram_verified = Column(Boolean, default=False)
+    tiktok_handle = Column(String(255))
+    tiktok_verified = Column(Boolean, default=False)
     subscription_status = Column(
         SAEnum(SubscriptionStatus, name="subscription_status"),
         default=SubscriptionStatus.free,
@@ -166,6 +182,8 @@ class InfluencerProfile(TimestampMixin, SoftDeleteMixin, Base):
     estimated_price_per_post = Column(Numeric(10, 2))
     stripe_account_id = Column(String(255))
     verified = Column(Boolean, default=False)
+    instagram_verified = Column(Boolean, default=False)
+    tiktok_verified = Column(Boolean, default=False)
     subscription_status = Column(
         SAEnum(SubscriptionStatus, name="subscription_status"),
         default=SubscriptionStatus.free,
@@ -230,6 +248,8 @@ class CampaignApplication(TimestampMixin, SoftDeleteMixin, Base):
         SAEnum(PayoutStatus, name="payout_status"),
         default=PayoutStatus.pending,
     )
+    contact_unlocked = Column(Boolean, default=False, nullable=False)
+    contact_unlocked_at = Column(DateTime(timezone=True), nullable=True)
 
     campaign = relationship("Campaign", back_populates="applications")
 
@@ -253,3 +273,30 @@ class Review(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_reviews_rating_range"),
     )
+
+
+class SocialVerification(TimestampMixin, Base):
+    """OTP challenges for manual/automatic social account verification."""
+    __tablename__ = "social_verifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    platform = Column(
+        SAEnum(VerificationPlatform, name="verification_platform"),
+        nullable=False,
+        index=True,
+    )
+    account_handle = Column(String(255), nullable=False)
+    code = Column(String(20), nullable=False, unique=True, index=True)
+    status = Column(
+        SAEnum(VerificationStatus, name="verification_status"),
+        default=VerificationStatus.pending,
+        nullable=False,
+        index=True,
+    )
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by_email = Column(String(255), nullable=True)
+    review_notes = Column(Text, nullable=True)

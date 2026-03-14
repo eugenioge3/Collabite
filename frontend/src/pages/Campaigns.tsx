@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import type { CampaignPublic, Niche } from '../lib/types';
-import { Search, MapPin, DollarSign } from 'lucide-react';
+import { Search, MapPin, DollarSign, CheckCircle, Store } from 'lucide-react';
 
 const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
 
@@ -66,8 +66,23 @@ export default function CampaignsPublic() {
           {campaigns.map((c) => (
             <Link key={c.id} to={`/campaigns/${c.id}`}
               className="bg-white border rounded-lg p-5 hover:border-primary transition group">
-              <h3 className="font-semibold text-lg mb-1 group-hover:text-primary truncate">{c.title}</h3>
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <h3 className="font-semibold text-lg group-hover:text-primary truncate">{c.title}</h3>
+                {c.already_applied && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full shrink-0">
+                    <CheckCircle size={12} /> Ya aplicaste
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500 mb-3 line-clamp-2">{c.description || 'Sin descripción'}</p>
+
+              {c.business_hint && (
+                <div className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded px-2.5 py-2 mb-3 inline-flex items-center gap-1.5">
+                  <Store size={12} className="text-gray-400" />
+                  <span className="line-clamp-1">{c.business_hint}</span>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2 mb-3">
                 {c.niche_required && (
                   <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded capitalize">{c.niche_required}</span>

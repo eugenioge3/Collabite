@@ -15,6 +15,7 @@ from models.models import (  # noqa: F401 — force model registration
     Campaign,
     CampaignApplication,
     Review,
+    SocialVerification,
 )
 
 config = context.config

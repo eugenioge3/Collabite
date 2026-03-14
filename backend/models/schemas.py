@@ -11,6 +11,8 @@ from models.models import (
     PayoutStatus,
     SubscriptionStatus,
     Currency,
+    VerificationPlatform,
+    VerificationStatus,
 )
 
 
@@ -26,6 +28,11 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class DevLoginRequest(BaseModel):
+    email: EmailStr
+    role: UserRole
 
 
 class VerifyEmailRequest(BaseModel):
@@ -66,6 +73,8 @@ class BusinessProfileUpdate(BaseModel):
     country: Optional[str] = Field(None, max_length=100)
     google_maps_url: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = Field(None, max_length=2000)
+    instagram_handle: Optional[str] = Field(None, max_length=255)
+    tiktok_handle: Optional[str] = Field(None, max_length=255)
 
 
 class BusinessProfileResponse(BaseModel):
@@ -78,6 +87,10 @@ class BusinessProfileResponse(BaseModel):
     google_maps_url: Optional[str] = None
     logo_url: Optional[str] = None
     description: Optional[str] = None
+    instagram_handle: Optional[str] = None
+    instagram_verified: bool = False
+    tiktok_handle: Optional[str] = None
+    tiktok_verified: bool = False
     verified: bool
     subscription_status: SubscriptionStatus
     created_at: datetime
@@ -96,6 +109,9 @@ class InfluencerProfileUpdate(BaseModel):
     state: Optional[str] = Field(None, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
     niche: Optional[Niche] = None
+    instagram_handle: Optional[str] = Field(None, max_length=255)
+    tiktok_handle: Optional[str] = Field(None, max_length=255)
+    youtube_handle: Optional[str] = Field(None, max_length=255)
 
 
 class InfluencerProfileResponse(BaseModel):
@@ -116,12 +132,42 @@ class InfluencerProfileResponse(BaseModel):
     profile_photo_url: Optional[str] = None
     portfolio_urls: list = []
     estimated_price_per_post: Optional[float] = None
+    instagram_verified: bool = False
+    tiktok_verified: bool = False
     verified: bool = False
     subscription_status: SubscriptionStatus = SubscriptionStatus.free
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class InfluencerPublicRankingResponse(BaseModel):
+    alias: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    niche: Optional[Niche] = None
+    followers_range: str
+    engagement_range: str
+    verified: bool = False
+
+
+class InfluencerBusinessRankingResponse(BaseModel):
+    user_id: UUID
+    display_name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    niche: Optional[Niche] = None
+    followers_instagram: int = 0
+    followers_tiktok: int = 0
+    followers_youtube: int = 0
+    engagement_rate: float = 0
+    estimated_price_per_post: Optional[float] = None
+    verified: bool = False
+    instagram_verified: bool = False
+    tiktok_verified: bool = False
+    created_at: datetime
 
 
 # ── Campaign ──────────────────────────────────────────────────────────────────
@@ -141,11 +187,14 @@ class CampaignCreate(BaseModel):
     includes: list = []
     deadline: Optional[date] = None
     max_applicants: Optional[int] = Field(None, ge=1)
+    publish_now: bool = False
 
 
 class CampaignUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=3, max_length=255)
     description: Optional[str] = Field(None, max_length=5000)
+    budget: Optional[float] = Field(None, gt=0)
+    currency: Optional[Currency] = None
     city: Optional[str] = Field(None, max_length=100)
     state: Optional[str] = Field(None, max_length=100)
     niche_required: Optional[Niche] = None
@@ -198,6 +247,8 @@ class CampaignPublicResponse(BaseModel):
     status: CampaignStatus
     deadline: Optional[date] = None
     max_applicants: Optional[int] = None
+    business_hint: Optional[str] = None
+    already_applied: bool = False
     created_at: datetime
 
     class Config:
@@ -215,6 +266,24 @@ class ApplicationSubmitDeliverables(BaseModel):
     deliverable_links: list[str]
 
 
+class ApplicationCandidateResponse(BaseModel):
+    user_id: UUID
+    display_name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    niche: Optional[Niche] = None
+    followers_instagram: int = 0
+    followers_tiktok: int = 0
+    followers_youtube: int = 0
+    engagement_rate: float = 0
+    estimated_price_per_post: Optional[float] = None
+    verified: bool = False
+    instagram_handle: Optional[str] = None
+    tiktok_handle: Optional[str] = None
+    youtube_handle: Optional[str] = None
+
+
 class ApplicationResponse(BaseModel):
     id: UUID
     campaign_id: UUID
@@ -224,6 +293,8 @@ class ApplicationResponse(BaseModel):
     deliverable_links: list = []
     payout_amount: Optional[float] = None
     payout_status: PayoutStatus
+    contact_unlocked: bool = False
+    candidate: Optional[ApplicationCandidateResponse] = None
     created_at: datetime
 
     class Config:
@@ -249,3 +320,56 @@ class ReviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ── Social Verification ───────────────────────────────────────────────────────
+
+
+class SocialVerificationInitRequest(BaseModel):
+    platform: VerificationPlatform
+    account_handle: str = Field(min_length=2, max_length=255)
+
+
+class SocialVerificationInitResponse(BaseModel):
+    verification_id: UUID
+    platform: VerificationPlatform
+    account_handle: str
+    code: str
+    expires_at: datetime
+    instructions: str
+
+
+class SocialVerificationStatusResponse(BaseModel):
+    verification_id: UUID
+    platform: VerificationPlatform
+    account_handle: str
+    status: VerificationStatus
+    code: str
+    expires_at: datetime
+    verified_at: Optional[datetime] = None
+    review_notes: Optional[str] = None
+
+
+class ManualVerificationDecisionRequest(BaseModel):
+    verification_id: UUID
+    review_notes: Optional[str] = Field(None, max_length=1000)
+
+
+class ManualVerificationApproveByCodeRequest(BaseModel):
+    platform: VerificationPlatform
+    code: str = Field(min_length=4, max_length=20)
+    account_handle: Optional[str] = Field(None, max_length=255)
+    review_notes: Optional[str] = Field(None, max_length=1000)
+
+
+class ManualPendingVerificationItem(BaseModel):
+    verification_id: UUID
+    user_id: UUID
+    user_email: str
+    user_role: UserRole
+    platform: VerificationPlatform
+    account_handle: str
+    code: str
+    status: VerificationStatus
+    expires_at: datetime
+    created_at: datetime

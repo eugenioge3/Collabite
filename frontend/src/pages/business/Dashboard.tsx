@@ -19,8 +19,8 @@ export default function BusinessDashboard() {
 
   if (loading) return <div className="flex justify-center py-20 text-gray-400">Cargando...</div>;
 
-  const active = campaigns.filter((c) => ['active', 'in_progress', 'funded'].includes(c.status));
-  const completed = campaigns.filter((c) => c.status === 'completed');
+  const matched = campaigns.filter((c) => c.status === 'in_progress');
+  const history = campaigns.filter((c) => ['completed', 'canceled', 'disputed'].includes(c.status));
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -48,13 +48,13 @@ export default function BusinessDashboard() {
         </div>
         <div className="bg-white border rounded-lg p-5">
           <Users className="text-secondary mb-2" size={24} />
-          <div className="text-2xl font-bold">{active.length}</div>
-          <p className="text-sm text-gray-500">Activas</p>
+          <div className="text-2xl font-bold">{matched.length}</div>
+          <p className="text-sm text-gray-500">Campañas cuadradas</p>
         </div>
         <div className="bg-white border rounded-lg p-5">
           <Briefcase className="text-accent mb-2" size={24} />
-          <div className="text-2xl font-bold">{completed.length}</div>
-          <p className="text-sm text-gray-500">Completadas</p>
+          <div className="text-2xl font-bold">{history.length}</div>
+          <p className="text-sm text-gray-500">Historial</p>
         </div>
       </div>
 
@@ -86,9 +86,25 @@ export default function BusinessDashboard() {
       </div>
 
       <div className="flex gap-3 flex-wrap">
+        <Link to="/dashboard/business/campaigns?view=matched"
+          className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
+          Campañas cuadradas
+        </Link>
+        <Link to="/dashboard/business/campaigns?view=history"
+          className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
+          Historial de campañas
+        </Link>
         <Link to="/dashboard/business/profile"
           className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
           Editar perfil
+        </Link>
+        <Link to="/dashboard/business/rankings"
+          className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
+          Ver rankings privados
+        </Link>
+        <Link to="/dashboard/business/verify"
+          className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
+          Verificar Instagram/TikTok
         </Link>
       </div>
     </div>

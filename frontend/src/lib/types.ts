@@ -33,6 +33,10 @@ export interface BusinessProfile {
   google_maps_url: string | null;
   logo_url: string | null;
   description: string | null;
+  instagram_handle: string | null;
+  instagram_verified: boolean;
+  tiktok_handle: string | null;
+  tiktok_verified: boolean;
   verified: boolean;
   subscription_status: SubscriptionStatus;
   created_at: string;
@@ -56,8 +60,38 @@ export interface InfluencerProfile {
   profile_photo_url: string | null;
   portfolio_urls: string[];
   estimated_price_per_post: number | null;
+  instagram_verified: boolean;
+  tiktok_verified: boolean;
   verified: boolean;
   subscription_status: SubscriptionStatus;
+  created_at: string;
+}
+
+export interface InfluencerPublicRanking {
+  alias: string;
+  city: string | null;
+  state: string | null;
+  niche: Niche | null;
+  followers_range: string;
+  engagement_range: string;
+  verified: boolean;
+}
+
+export interface InfluencerBusinessRanking {
+  user_id: string;
+  display_name: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  niche: Niche | null;
+  followers_instagram: number;
+  followers_tiktok: number;
+  followers_youtube: number;
+  engagement_rate: number;
+  estimated_price_per_post: number | null;
+  verified: boolean;
+  instagram_verified: boolean;
+  tiktok_verified: boolean;
   created_at: string;
 }
 
@@ -116,6 +150,8 @@ export interface CampaignPublic {
   status: CampaignStatus;
   deadline: string | null;
   max_applicants: number | null;
+  business_hint?: string | null;
+  already_applied?: boolean;
   created_at: string;
 }
 
@@ -123,6 +159,24 @@ export interface CampaignPublic {
 
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'disputed';
 export type PayoutStatus = 'pending' | 'released' | 'disputed';
+
+export interface ApplicationCandidate {
+  user_id: string;
+  display_name: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  niche: Niche | null;
+  followers_instagram: number;
+  followers_tiktok: number;
+  followers_youtube: number;
+  engagement_rate: number;
+  estimated_price_per_post: number | null;
+  verified: boolean;
+  instagram_handle: string | null;
+  tiktok_handle: string | null;
+  youtube_handle: string | null;
+}
 
 export interface Application {
   id: string;
@@ -133,5 +187,50 @@ export interface Application {
   deliverable_links: string[];
   payout_amount: number | null;
   payout_status: PayoutStatus;
+  contact_unlocked: boolean;
+  candidate: ApplicationCandidate | null;
+  created_at: string;
+}
+
+// ── Social Verification ─────────────────────────────────────────────────────
+
+export type VerificationPlatform = 'instagram' | 'tiktok';
+export type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'expired';
+
+export interface SocialVerificationInitRequest {
+  platform: VerificationPlatform;
+  account_handle: string;
+}
+
+export interface SocialVerificationInitResponse {
+  verification_id: string;
+  platform: VerificationPlatform;
+  account_handle: string;
+  code: string;
+  expires_at: string;
+  instructions: string;
+}
+
+export interface SocialVerificationStatusResponse {
+  verification_id: string;
+  platform: VerificationPlatform;
+  account_handle: string;
+  status: VerificationStatus;
+  code: string;
+  expires_at: string;
+  verified_at: string | null;
+  review_notes: string | null;
+}
+
+export interface ManualPendingVerificationItem {
+  verification_id: string;
+  user_id: string;
+  user_email: string;
+  user_role: UserRole;
+  platform: VerificationPlatform;
+  account_handle: string;
+  code: string;
+  status: VerificationStatus;
+  expires_at: string;
   created_at: string;
 }

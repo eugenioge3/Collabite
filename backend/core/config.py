@@ -28,6 +28,16 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
 
+    # Meta / Instagram (optional for webhook automation later)
+    meta_app_secret: str = ""
+    meta_webhook_verify_token: str = ""
+    meta_page_access_token: str = ""
+
+    # Manual verification operations
+    instagram_ota_handle: str = "collabite_mx"
+    tiktok_ota_handle: str = "collabite_mx"
+    manual_verification_admin_token: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = False

@@ -7,6 +7,7 @@ from api.influencers import router as influencers_router
 from api.businesses import router as businesses_router
 from api.campaigns import router as campaigns_router
 from api.applications import router as applications_router
+from api.verification import router as verification_router
 
 settings = get_settings()
 
@@ -33,6 +34,7 @@ app.include_router(influencers_router, prefix="/api/influencers", tags=["Influen
 app.include_router(businesses_router, prefix="/api/businesses", tags=["Businesses"])
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
 app.include_router(applications_router, prefix="/api/applications", tags=["Applications"])
+app.include_router(verification_router, prefix="/api/verify", tags=["Verification"])
 
 
 @app.get("/api/health")

@@ -7,6 +7,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const showOpsLink = import.meta.env.DEV;
 
   const handleLogout = () => {
     logout();
@@ -30,6 +31,11 @@ export default function Navbar() {
             <Link to="/rankings" className="text-gray-600 hover:text-primary transition">
               Rankings
             </Link>
+            {showOpsLink && (
+              <Link to="/ops/verifications" className="text-gray-600 hover:text-primary transition">
+                Ops
+              </Link>
+            )}
 
             {user ? (
               <>
@@ -81,6 +87,11 @@ export default function Navbar() {
           <Link to="/rankings" className="block text-gray-600" onClick={() => setMobileOpen(false)}>
             Rankings
           </Link>
+          {showOpsLink && (
+            <Link to="/ops/verifications" className="block text-gray-600" onClick={() => setMobileOpen(false)}>
+              Ops
+            </Link>
+          )}
           {user ? (
             <>
               <Link to="/dashboard" className="block text-gray-600" onClick={() => setMobileOpen(false)}>

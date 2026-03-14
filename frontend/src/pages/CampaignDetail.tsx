@@ -30,7 +30,7 @@ export default function CampaignPublicDetail() {
     setApplying(true);
     setError('');
     try {
-      await api.post(`/campaigns/${id}/apply`, { message: message || null });
+      await api.post(`/applications/campaigns/${id}/apply`, { message: message || null });
       setApplied(true);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al aplicar');
