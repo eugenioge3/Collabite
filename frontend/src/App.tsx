@@ -91,7 +91,7 @@ export default function App() {
             {/* Internal ops */}
             <Route
               path="/ops/verifications"
-              element={<ProtectedRoute><AdminVerifications /></ProtectedRoute>}
+              element={<AdminVerifications />}
             />
 
             {/* Catch-all */}
