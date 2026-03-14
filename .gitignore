@@ -11,6 +11,8 @@ venv/
 dist/
 frontend/dist/
 frontend/build/
+frontend/.vite/
+.vite/
 *.zip
 
 # Environment
