@@ -90,6 +90,10 @@ export default function BusinessDashboard() {
           className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
           Editar perfil
         </Link>
+        <Link to="/dashboard/business/rankings"
+          className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
+          Ver rankings privados
+        </Link>
         <Link to="/dashboard/business/verify"
           className="px-4 py-2 border rounded-lg text-sm hover:border-primary transition">
           Verificar Instagram/TikTok

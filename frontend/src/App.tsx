@@ -14,6 +14,7 @@ import BusinessProfile from './pages/business/Profile';
 import BusinessCampaigns from './pages/business/Campaigns';
 import CreateCampaign from './pages/business/CreateCampaign';
 import CampaignDetail from './pages/business/CampaignDetail';
+import InfluencerRankingsPrivate from './pages/business/InfluencerRankings';
 import CampaignsPublic from './pages/Campaigns';
 import CampaignPublicDetail from './pages/CampaignDetail';
 import Rankings from './pages/Rankings';
@@ -82,6 +83,10 @@ export default function App() {
             <Route
               path="/dashboard/business/campaigns/:id"
               element={<ProtectedRoute role="business"><CampaignDetail /></ProtectedRoute>}
+            />
+            <Route
+              path="/dashboard/business/rankings"
+              element={<ProtectedRoute role="business"><InfluencerRankingsPrivate /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/business/verify"

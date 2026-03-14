@@ -142,6 +142,16 @@ class InfluencerProfileResponse(BaseModel):
         from_attributes = True
 
 
+class InfluencerPublicRankingResponse(BaseModel):
+    alias: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    niche: Optional[Niche] = None
+    followers_range: str
+    engagement_range: str
+    verified: bool = False
+
+
 # ── Campaign ──────────────────────────────────────────────────────────────────
 
 

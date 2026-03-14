@@ -67,6 +67,16 @@ export interface InfluencerProfile {
   created_at: string;
 }
 
+export interface InfluencerPublicRanking {
+  alias: string;
+  city: string | null;
+  state: string | null;
+  niche: Niche | null;
+  followers_range: string;
+  engagement_range: string;
+  verified: boolean;
+}
+
 // ── Campaigns ───────────────────────────────────────────────────────────────
 
 export type CampaignStatus =
