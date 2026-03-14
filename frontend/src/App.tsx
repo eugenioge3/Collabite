@@ -13,6 +13,7 @@ import BusinessDashboard from './pages/business/Dashboard';
 import BusinessProfile from './pages/business/Profile';
 import BusinessCampaigns from './pages/business/Campaigns';
 import CreateCampaign from './pages/business/CreateCampaign';
+import EditCampaign from './pages/business/EditCampaign';
 import CampaignDetail from './pages/business/CampaignDetail';
 import InfluencerRankingsPrivate from './pages/business/InfluencerRankings';
 import CampaignsPublic from './pages/Campaigns';
@@ -79,6 +80,10 @@ export default function App() {
             <Route
               path="/dashboard/business/campaigns/new"
               element={<ProtectedRoute role="business"><CreateCampaign /></ProtectedRoute>}
+            />
+            <Route
+              path="/dashboard/business/campaigns/:id/edit"
+              element={<ProtectedRoute role="business"><EditCampaign /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/business/campaigns/:id"

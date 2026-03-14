@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Application } from '../../lib/types';
-import { Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',

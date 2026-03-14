@@ -77,6 +77,24 @@ export interface InfluencerPublicRanking {
   verified: boolean;
 }
 
+export interface InfluencerBusinessRanking {
+  user_id: string;
+  display_name: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  niche: Niche | null;
+  followers_instagram: number;
+  followers_tiktok: number;
+  followers_youtube: number;
+  engagement_rate: number;
+  estimated_price_per_post: number | null;
+  verified: boolean;
+  instagram_verified: boolean;
+  tiktok_verified: boolean;
+  created_at: string;
+}
+
 // ── Campaigns ───────────────────────────────────────────────────────────────
 
 export type CampaignStatus =
@@ -132,6 +150,8 @@ export interface CampaignPublic {
   status: CampaignStatus;
   deadline: string | null;
   max_applicants: number | null;
+  business_hint?: string | null;
+  already_applied?: boolean;
   created_at: string;
 }
 
@@ -139,6 +159,24 @@ export interface CampaignPublic {
 
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'disputed';
 export type PayoutStatus = 'pending' | 'released' | 'disputed';
+
+export interface ApplicationCandidate {
+  user_id: string;
+  display_name: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  niche: Niche | null;
+  followers_instagram: number;
+  followers_tiktok: number;
+  followers_youtube: number;
+  engagement_rate: number;
+  estimated_price_per_post: number | null;
+  verified: boolean;
+  instagram_handle: string | null;
+  tiktok_handle: string | null;
+  youtube_handle: string | null;
+}
 
 export interface Application {
   id: string;
@@ -149,6 +187,8 @@ export interface Application {
   deliverable_links: string[];
   payout_amount: number | null;
   payout_status: PayoutStatus;
+  contact_unlocked: boolean;
+  candidate: ApplicationCandidate | null;
   created_at: string;
 }
 

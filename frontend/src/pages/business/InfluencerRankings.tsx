@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
-import type { InfluencerProfile, Niche } from '../../lib/types';
+import type { InfluencerBusinessRanking, Niche } from '../../lib/types';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Instagram, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, MapPin, ShieldCheck } from 'lucide-react';
 
 const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
 
 export default function InfluencerRankingsPrivate() {
-  const [influencers, setInfluencers] = useState<InfluencerProfile[]>([]);
+  const [influencers, setInfluencers] = useState<InfluencerBusinessRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState('');
   const [niche, setNiche] = useState('');
@@ -36,7 +36,7 @@ export default function InfluencerRankingsPrivate() {
     fetchRankings();
   };
 
-  const totalFollowers = (inf: InfluencerProfile) =>
+  const totalFollowers = (inf: InfluencerBusinessRanking) =>
     inf.followers_instagram + inf.followers_tiktok + inf.followers_youtube;
 
   return (
@@ -110,9 +110,6 @@ export default function InfluencerRankingsPrivate() {
                   )}
                   {inf.niche && (
                     <span className="capitalize">{inf.niche}</span>
-                  )}
-                  {inf.instagram_handle && (
-                    <span className="flex items-center gap-0.5"><Instagram size={12} />@{inf.instagram_handle}</span>
                   )}
                   {inf.verified && (
                     <span className="flex items-center gap-0.5"><ShieldCheck size={12} />Verificado</span>

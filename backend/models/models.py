@@ -248,6 +248,8 @@ class CampaignApplication(TimestampMixin, SoftDeleteMixin, Base):
         SAEnum(PayoutStatus, name="payout_status"),
         default=PayoutStatus.pending,
     )
+    contact_unlocked = Column(Boolean, default=False, nullable=False)
+    contact_unlocked_at = Column(DateTime(timezone=True), nullable=True)
 
     campaign = relationship("Campaign", back_populates="applications")
 

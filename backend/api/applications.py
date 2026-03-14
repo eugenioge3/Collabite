@@ -12,14 +12,17 @@ from models.models import (
     CampaignStatus,
     ApplicationStatus,
     PayoutStatus,
+    InfluencerProfile,
 )
 from models.schemas import (
     ApplicationCreate,
     ApplicationSubmitDeliverables,
+    ApplicationCandidateResponse,
     ApplicationResponse,
 )
 
 router = APIRouter()
+MASKED_UUID = UUID("00000000-0000-0000-0000-000000000000")
 
 
 @router.post(
@@ -99,10 +102,28 @@ def list_applications(
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
 
-    return db.query(CampaignApplication).filter(
+    applications = db.query(CampaignApplication).filter(
         CampaignApplication.campaign_id == campaign_id,
         CampaignApplication.is_deleted == False,
     ).all()
+
+    return _serialize_applications_for_business(
+        db,
+        applications,
+        hide_identity=not bool(campaign.escrow_funded),
+    )
+
+
+@router.get(
+    "/campaign/{campaign_id}",
+    response_model=list[ApplicationResponse],
+)
+def list_applications_compat(
+    campaign_id: UUID,
+    current_user: dict = Depends(require_role("business")),
+    db: Session = Depends(get_db),
+):
+    return list_applications(campaign_id=campaign_id, current_user=current_user, db=db)
 
 
 @router.put("/{application_id}/accept", response_model=ApplicationResponse)
@@ -113,6 +134,9 @@ def accept_application(
 ):
     app, _ = _get_application_for_business(application_id, current_user, db)
 
+    if not app.campaign.escrow_funded:
+        raise HTTPException(status_code=400, detail="Pay campaign escrow to review applicants")
+
     if app.status != ApplicationStatus.pending:
         raise HTTPException(status_code=400, detail="Application is not pending")
 
@@ -122,7 +146,16 @@ def accept_application(
     app.campaign.status = CampaignStatus.in_progress
     db.commit()
     db.refresh(app)
-    return app
+    return _serialize_application_for_business(db, app)
+
+
+@router.patch("/{application_id}/accept", response_model=ApplicationResponse)
+def accept_application_patch(
+    application_id: UUID,
+    current_user: dict = Depends(require_role("business")),
+    db: Session = Depends(get_db),
+):
+    return accept_application(application_id=application_id, current_user=current_user, db=db)
 
 
 @router.put("/{application_id}/reject", response_model=ApplicationResponse)
@@ -133,13 +166,25 @@ def reject_application(
 ):
     app, _ = _get_application_for_business(application_id, current_user, db)
 
+    if not app.campaign.escrow_funded:
+        raise HTTPException(status_code=400, detail="Pay campaign escrow to review applicants")
+
     if app.status != ApplicationStatus.pending:
         raise HTTPException(status_code=400, detail="Application is not pending")
 
     app.status = ApplicationStatus.rejected
     db.commit()
     db.refresh(app)
-    return app
+    return _serialize_application_for_business(db, app)
+
+
+@router.patch("/{application_id}/reject", response_model=ApplicationResponse)
+def reject_application_patch(
+    application_id: UUID,
+    current_user: dict = Depends(require_role("business")),
+    db: Session = Depends(get_db),
+):
+    return reject_application(application_id=application_id, current_user=current_user, db=db)
 
 
 @router.put("/{application_id}/submit-deliverables", response_model=ApplicationResponse)
@@ -191,7 +236,7 @@ def approve_deliverables(
 
     db.commit()
     db.refresh(app)
-    return app
+    return _serialize_application_for_business(db, app)
 
 
 @router.put("/{application_id}/dispute", response_model=ApplicationResponse)
@@ -224,6 +269,31 @@ def dispute_application(
     return app
 
 
+@router.post("/{application_id}/unlock-contact", response_model=ApplicationResponse)
+def unlock_candidate_contact(
+    application_id: UUID,
+    current_user: dict = Depends(require_role("business")),
+    db: Session = Depends(get_db),
+):
+    app, _ = _get_application_for_business(application_id, current_user, db)
+
+    if not app.campaign.escrow_funded:
+        raise HTTPException(
+            status_code=400,
+            detail="Fund campaign escrow before unlocking candidate contact",
+        )
+
+    if app.status == ApplicationStatus.rejected:
+        raise HTTPException(status_code=400, detail="Cannot unlock a rejected application")
+
+    app.contact_unlocked = True
+    app.contact_unlocked_at = app.contact_unlocked_at or app.updated_at
+    db.commit()
+    db.refresh(app)
+
+    return _serialize_application_for_business(db, app)
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 
@@ -251,3 +321,82 @@ def _get_application_for_business(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     return app, user
+
+
+def _serialize_applications_for_business(
+    db: Session,
+    applications: list[CampaignApplication],
+    hide_identity: bool = False,
+) -> list[ApplicationResponse]:
+    influencer_ids = [a.influencer_user_id for a in applications]
+    profile_rows = db.query(InfluencerProfile).filter(
+        InfluencerProfile.user_id.in_(influencer_ids),
+        InfluencerProfile.is_deleted == False,
+    ).all() if influencer_ids else []
+
+    profiles_by_user_id = {p.user_id: p for p in profile_rows}
+
+    return [
+        _serialize_application_for_business(
+            db,
+            app,
+            profiles_by_user_id.get(app.influencer_user_id),
+            hide_identity=hide_identity,
+        )
+        for app in applications
+    ]
+
+
+def _serialize_application_for_business(
+    db: Session,
+    app: CampaignApplication,
+    profile: InfluencerProfile | None = None,
+    hide_identity: bool = False,
+) -> ApplicationResponse:
+    if profile is None:
+        profile = db.query(InfluencerProfile).filter(
+            InfluencerProfile.user_id == app.influencer_user_id,
+            InfluencerProfile.is_deleted == False,
+        ).first()
+
+    candidate = None
+    if profile:
+        show_contact = bool(app.contact_unlocked) and not hide_identity
+        candidate_user_id = profile.user_id if not hide_identity else MASKED_UUID
+        display_name = profile.display_name if not hide_identity else "Perfil reservado"
+        candidate = ApplicationCandidateResponse(
+            user_id=candidate_user_id,
+            display_name=display_name,
+            city=profile.city,
+            state=profile.state,
+            country=profile.country,
+            niche=profile.niche,
+            followers_instagram=profile.followers_instagram or 0,
+            followers_tiktok=profile.followers_tiktok or 0,
+            followers_youtube=profile.followers_youtube or 0,
+            engagement_rate=float(profile.engagement_rate or 0),
+            estimated_price_per_post=float(profile.estimated_price_per_post or 0)
+            if profile.estimated_price_per_post is not None
+            else None,
+            verified=bool(profile.verified),
+            instagram_handle=profile.instagram_handle if show_contact else None,
+            tiktok_handle=profile.tiktok_handle if show_contact else None,
+            youtube_handle=profile.youtube_handle if show_contact else None,
+        )
+
+    influencer_user_id = app.influencer_user_id if not hide_identity else MASKED_UUID
+    visible_message = app.message if not hide_identity else None
+
+    return ApplicationResponse(
+        id=app.id,
+        campaign_id=app.campaign_id,
+        influencer_user_id=influencer_user_id,
+        status=app.status,
+        message=visible_message,
+        deliverable_links=app.deliverable_links or [],
+        payout_amount=float(app.payout_amount) if app.payout_amount is not None else None,
+        payout_status=app.payout_status,
+        contact_unlocked=bool(app.contact_unlocked) and not hide_identity,
+        candidate=candidate,
+        created_at=app.created_at,
+    )

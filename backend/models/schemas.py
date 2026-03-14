@@ -152,6 +152,24 @@ class InfluencerPublicRankingResponse(BaseModel):
     verified: bool = False
 
 
+class InfluencerBusinessRankingResponse(BaseModel):
+    user_id: UUID
+    display_name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    niche: Optional[Niche] = None
+    followers_instagram: int = 0
+    followers_tiktok: int = 0
+    followers_youtube: int = 0
+    engagement_rate: float = 0
+    estimated_price_per_post: Optional[float] = None
+    verified: bool = False
+    instagram_verified: bool = False
+    tiktok_verified: bool = False
+    created_at: datetime
+
+
 # ── Campaign ──────────────────────────────────────────────────────────────────
 
 
@@ -169,11 +187,14 @@ class CampaignCreate(BaseModel):
     includes: list = []
     deadline: Optional[date] = None
     max_applicants: Optional[int] = Field(None, ge=1)
+    publish_now: bool = False
 
 
 class CampaignUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=3, max_length=255)
     description: Optional[str] = Field(None, max_length=5000)
+    budget: Optional[float] = Field(None, gt=0)
+    currency: Optional[Currency] = None
     city: Optional[str] = Field(None, max_length=100)
     state: Optional[str] = Field(None, max_length=100)
     niche_required: Optional[Niche] = None
@@ -226,6 +247,8 @@ class CampaignPublicResponse(BaseModel):
     status: CampaignStatus
     deadline: Optional[date] = None
     max_applicants: Optional[int] = None
+    business_hint: Optional[str] = None
+    already_applied: bool = False
     created_at: datetime
 
     class Config:
@@ -243,6 +266,24 @@ class ApplicationSubmitDeliverables(BaseModel):
     deliverable_links: list[str]
 
 
+class ApplicationCandidateResponse(BaseModel):
+    user_id: UUID
+    display_name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    niche: Optional[Niche] = None
+    followers_instagram: int = 0
+    followers_tiktok: int = 0
+    followers_youtube: int = 0
+    engagement_rate: float = 0
+    estimated_price_per_post: Optional[float] = None
+    verified: bool = False
+    instagram_handle: Optional[str] = None
+    tiktok_handle: Optional[str] = None
+    youtube_handle: Optional[str] = None
+
+
 class ApplicationResponse(BaseModel):
     id: UUID
     campaign_id: UUID
@@ -252,6 +293,8 @@ class ApplicationResponse(BaseModel):
     deliverable_links: list = []
     payout_amount: Optional[float] = None
     payout_status: PayoutStatus
+    contact_unlocked: bool = False
+    candidate: Optional[ApplicationCandidateResponse] = None
     created_at: datetime
 
     class Config:

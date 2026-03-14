@@ -9,6 +9,7 @@ from models.models import User, InfluencerProfile, Niche
 from models.schemas import (
     InfluencerProfileUpdate,
     InfluencerProfileResponse,
+    InfluencerBusinessRankingResponse,
     InfluencerPublicRankingResponse,
 )
 
@@ -60,6 +61,28 @@ def _apply_filters(
     if max_followers is not None:
         query = query.filter(InfluencerProfile.followers_instagram <= max_followers)
     return query
+
+
+def _to_business_ranking_response(profile: InfluencerProfile) -> InfluencerBusinessRankingResponse:
+    return InfluencerBusinessRankingResponse(
+        user_id=profile.user_id,
+        display_name=profile.display_name,
+        city=profile.city,
+        state=profile.state,
+        country=profile.country,
+        niche=profile.niche,
+        followers_instagram=profile.followers_instagram or 0,
+        followers_tiktok=profile.followers_tiktok or 0,
+        followers_youtube=profile.followers_youtube or 0,
+        engagement_rate=float(profile.engagement_rate or 0),
+        estimated_price_per_post=float(profile.estimated_price_per_post or 0)
+        if profile.estimated_price_per_post is not None
+        else None,
+        verified=bool(profile.verified),
+        instagram_verified=bool(profile.instagram_verified),
+        tiktok_verified=bool(profile.tiktok_verified),
+        created_at=profile.created_at,
+    )
 
 
 @router.get("/me", response_model=InfluencerProfileResponse)
@@ -127,7 +150,7 @@ def search_influencers(
     return result
 
 
-@router.get("/private/rankings", response_model=list[InfluencerProfileResponse])
+@router.get("/private/rankings", response_model=list[InfluencerBusinessRankingResponse])
 def private_rankings_for_business(
     city: str | None = Query(None),
     niche: Niche | None = Query(None),
@@ -147,10 +170,11 @@ def private_rankings_for_business(
     sort_col = getattr(InfluencerProfile, sort_by)
     query = query.order_by(sort_col.desc())
 
-    return query.offset(offset).limit(limit).all()
+    profiles = query.offset(offset).limit(limit).all()
+    return [_to_business_ranking_response(p) for p in profiles]
 
 
-@router.get("/{influencer_id}", response_model=InfluencerProfileResponse)
+@router.get("/{influencer_id}", response_model=InfluencerBusinessRankingResponse)
 def get_influencer(
     influencer_id: UUID,
     _: dict = Depends(require_role("business")),
@@ -164,7 +188,7 @@ def get_influencer(
     if not profile:
         raise HTTPException(status_code=404, detail="Influencer not found")
 
-    return profile
+    return _to_business_ranking_response(profile)
 
 
 @router.put("/me", response_model=InfluencerProfileResponse)

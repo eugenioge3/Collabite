@@ -10,6 +10,7 @@ from core.config import get_settings
 import httpx
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 _jwks_cache: dict | None = None
 
@@ -107,6 +108,16 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
     """FastAPI dependency: validates JWT and returns token claims."""
+    payload = _decode_token(credentials.credentials)
+    return payload
+
+
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
+) -> dict | None:
+    """FastAPI dependency: returns token claims when auth exists, otherwise None."""
+    if credentials is None:
+        return None
     payload = _decode_token(credentials.credentials)
     return payload
 
