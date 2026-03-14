@@ -36,11 +36,112 @@ Collabite/
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.9+
 - Node.js 20+
-- Terraform 1.5+
-- AWS CLI configured
-- PostgreSQL (local or Docker)
+- npm 10+
+- PostgreSQL 16 locally, or Docker/Docker Compose if quieres usar el `docker-compose.yml`
+- Terraform 1.5+ y AWS CLI solo para despliegue remoto
+
+## Local Development
+
+### 1. Base de datos local
+
+Opcion A: usar una instancia local de PostgreSQL con estos valores, que ya coinciden con [backend/.env.example](backend/.env.example):
+
+```bash
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=collabite
+DB_USER=collabite_admin
+DB_PASSWORD=changeme
+```
+
+Opcion B: si tienes Docker disponible, levantar la DB incluida en el repo:
+
+```bash
+docker compose up -d db
+```
+
+### 2. Preparar backend
+
+```bash
+cd backend
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+cp .env.example .env
+```
+
+### 3. Levantar backend
+
+Comando recomendado desde la raiz del repo:
+
+```bash
+./scripts/run-local-backend.sh
+```
+
+Comando equivalente manual:
+
+```bash
+cd backend
+.venv/bin/alembic upgrade head
+ENVIRONMENT=local .venv/bin/uvicorn api.handler:app --app-dir "$PWD" --host 127.0.0.1 --port 8000
+```
+
+Backend listo en:
+- API health: `http://127.0.0.1:8000/api/health`
+- OpenAPI docs: `http://127.0.0.1:8000/docs`
+
+### 4. Preparar frontend
+
+```bash
+cd frontend
+npm ci
+```
+
+### 5. Levantar frontend
+
+Comando recomendado desde la raiz del repo:
+
+```bash
+./scripts/run-local-frontend.sh
+```
+
+Comando equivalente manual:
+
+```bash
+cd frontend
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+Frontend listo en:
+- App: `http://127.0.0.1:5173`
+
+### 6. Verificar stack local
+
+```bash
+curl http://127.0.0.1:8000/api/health
+curl http://127.0.0.1:5173/api/health
+```
+
+La segunda llamada valida tambien el proxy de Vite hacia el backend local.
+
+### 7. Login local rapido
+
+En desarrollo, la pantalla de login muestra botones de demo para entrar como negocio o influencer cuando el frontend corre en modo dev y el backend esta en `ENVIRONMENT=local`.
+
+Abre:
+
+```text
+http://127.0.0.1:5173/login
+```
+
+Y usa:
+- `Entrar demo Negocio`
+- `Entrar demo Influencer`
+
+## Remote Deploy
+
+Los scripts de `scripts/deploy.sh` y `scripts/deploy-frontend.sh` despliegan a AWS. No son necesarios para correr la app en local.
 
 ### 1. Bootstrap Terraform State
 
@@ -61,11 +162,10 @@ terraform apply
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # Fill in values
-uvicorn api.handler:app --reload --port 8000
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+cp .env.example .env
+ENVIRONMENT=local .venv/bin/uvicorn api.handler:app --app-dir "$PWD" --host 127.0.0.1 --port 8000
 ```
 
 API docs: http://localhost:8000/docs
@@ -74,8 +174,7 @@ API docs: http://localhost:8000/docs
 
 ```bash
 cd backend
-alembic revision --autogenerate -m "initial"
-alembic upgrade head
+.venv/bin/alembic upgrade head
 ```
 
 ### 5. Deploy

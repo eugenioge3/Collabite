@@ -3,10 +3,32 @@
 # Usage: ./scripts/deploy.sh [dev|staging|prod]
 set -euo pipefail
 
+require_cmd() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "ERROR: required command not found: $1" >&2
+    exit 1
+  fi
+}
+
 ENVIRONMENT="${1:-dev}"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 TERRAFORM_DIR="$PROJECT_ROOT/terraform/environments/$ENVIRONMENT"
+
+PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  PYTHON_BIN="$(command -v python3 || true)"
+fi
+
+if [[ -z "$PYTHON_BIN" ]]; then
+  echo "ERROR: Python interpreter not found. Create backend/.venv or install python3." >&2
+  exit 1
+fi
+
+require_cmd aws
+require_cmd terraform
+require_cmd zip
+"$PYTHON_BIN" -m pip --version >/dev/null
 
 echo "=========================================="
 echo "  Collabite Deploy — $ENVIRONMENT"
@@ -22,7 +44,7 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 # Install dependencies
-pip install -r requirements.txt -t "$BUILD_DIR" --quiet
+"$PYTHON_BIN" -m pip install -r requirements.txt -t "$BUILD_DIR" --quiet
 
 # Copy source code
 cp -r api core models "$BUILD_DIR/"
