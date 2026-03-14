@@ -11,6 +11,8 @@ from models.models import (
     PayoutStatus,
     SubscriptionStatus,
     Currency,
+    VerificationPlatform,
+    VerificationStatus,
 )
 
 
@@ -66,6 +68,8 @@ class BusinessProfileUpdate(BaseModel):
     country: Optional[str] = Field(None, max_length=100)
     google_maps_url: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = Field(None, max_length=2000)
+    instagram_handle: Optional[str] = Field(None, max_length=255)
+    tiktok_handle: Optional[str] = Field(None, max_length=255)
 
 
 class BusinessProfileResponse(BaseModel):
@@ -78,6 +82,10 @@ class BusinessProfileResponse(BaseModel):
     google_maps_url: Optional[str] = None
     logo_url: Optional[str] = None
     description: Optional[str] = None
+    instagram_handle: Optional[str] = None
+    instagram_verified: bool = False
+    tiktok_handle: Optional[str] = None
+    tiktok_verified: bool = False
     verified: bool
     subscription_status: SubscriptionStatus
     created_at: datetime
@@ -96,6 +104,9 @@ class InfluencerProfileUpdate(BaseModel):
     state: Optional[str] = Field(None, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
     niche: Optional[Niche] = None
+    instagram_handle: Optional[str] = Field(None, max_length=255)
+    tiktok_handle: Optional[str] = Field(None, max_length=255)
+    youtube_handle: Optional[str] = Field(None, max_length=255)
 
 
 class InfluencerProfileResponse(BaseModel):
@@ -116,6 +127,8 @@ class InfluencerProfileResponse(BaseModel):
     profile_photo_url: Optional[str] = None
     portfolio_urls: list = []
     estimated_price_per_post: Optional[float] = None
+    instagram_verified: bool = False
+    tiktok_verified: bool = False
     verified: bool = False
     subscription_status: SubscriptionStatus = SubscriptionStatus.free
     created_at: datetime
@@ -249,3 +262,56 @@ class ReviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ── Social Verification ───────────────────────────────────────────────────────
+
+
+class SocialVerificationInitRequest(BaseModel):
+    platform: VerificationPlatform
+    account_handle: str = Field(min_length=2, max_length=255)
+
+
+class SocialVerificationInitResponse(BaseModel):
+    verification_id: UUID
+    platform: VerificationPlatform
+    account_handle: str
+    code: str
+    expires_at: datetime
+    instructions: str
+
+
+class SocialVerificationStatusResponse(BaseModel):
+    verification_id: UUID
+    platform: VerificationPlatform
+    account_handle: str
+    status: VerificationStatus
+    code: str
+    expires_at: datetime
+    verified_at: Optional[datetime] = None
+    review_notes: Optional[str] = None
+
+
+class ManualVerificationDecisionRequest(BaseModel):
+    verification_id: UUID
+    review_notes: Optional[str] = Field(None, max_length=1000)
+
+
+class ManualVerificationApproveByCodeRequest(BaseModel):
+    platform: VerificationPlatform
+    code: str = Field(min_length=4, max_length=20)
+    account_handle: Optional[str] = Field(None, max_length=255)
+    review_notes: Optional[str] = Field(None, max_length=1000)
+
+
+class ManualPendingVerificationItem(BaseModel):
+    verification_id: UUID
+    user_id: UUID
+    user_email: str
+    user_role: UserRole
+    platform: VerificationPlatform
+    account_handle: str
+    code: str
+    status: VerificationStatus
+    expires_at: datetime
+    created_at: datetime
