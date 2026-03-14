@@ -18,6 +18,7 @@ import CampaignsPublic from './pages/Campaigns';
 import CampaignPublicDetail from './pages/CampaignDetail';
 import Rankings from './pages/Rankings';
 import VerifySocial from './pages/VerifySocial';
+import AdminVerifications from './pages/AdminVerifications';
 
 export default function App() {
   return (
@@ -85,6 +86,12 @@ export default function App() {
             <Route
               path="/dashboard/business/verify"
               element={<ProtectedRoute role="business"><VerifySocial /></ProtectedRoute>}
+            />
+
+            {/* Internal ops */}
+            <Route
+              path="/ops/verifications"
+              element={<ProtectedRoute><AdminVerifications /></ProtectedRoute>}
             />
 
             {/* Catch-all */}

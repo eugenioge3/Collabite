@@ -171,3 +171,16 @@ export interface SocialVerificationStatusResponse {
   verified_at: string | null;
   review_notes: string | null;
 }
+
+export interface ManualPendingVerificationItem {
+  verification_id: string;
+  user_id: string;
+  user_email: string;
+  user_role: UserRole;
+  platform: VerificationPlatform;
+  account_handle: string;
+  code: string;
+  status: VerificationStatus;
+  expires_at: string;
+  created_at: string;
+}

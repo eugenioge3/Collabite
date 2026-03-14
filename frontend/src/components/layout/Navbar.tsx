@@ -39,6 +39,12 @@ export default function Navbar() {
                 >
                   Dashboard
                 </Link>
+                <Link
+                  to="/ops/verifications"
+                  className="text-gray-600 hover:text-primary transition"
+                >
+                  Ops
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1 text-gray-500 hover:text-danger transition"
@@ -85,6 +91,9 @@ export default function Navbar() {
             <>
               <Link to="/dashboard" className="block text-gray-600" onClick={() => setMobileOpen(false)}>
                 Dashboard
+              </Link>
+              <Link to="/ops/verifications" className="block text-gray-600" onClick={() => setMobileOpen(false)}>
+                Ops
               </Link>
               <button onClick={handleLogout} className="text-danger">
                 Salir
