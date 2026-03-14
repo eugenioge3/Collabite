@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.auth import get_current_user, require_role
@@ -12,6 +12,27 @@ from models.schemas import (
 )
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=InfluencerProfileResponse)
+def get_my_profile(
+    current_user: dict = Depends(require_role("influencer")),
+    db: Session = Depends(get_db),
+):
+    cognito_sub = current_user.get("sub")
+    user = db.query(User).filter(User.cognito_sub == cognito_sub).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = db.query(InfluencerProfile).filter(
+        InfluencerProfile.user_id == user.id,
+        InfluencerProfile.is_deleted == False,
+    ).first()
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    return profile
 
 
 @router.get("", response_model=list[InfluencerProfileResponse])

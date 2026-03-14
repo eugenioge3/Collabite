@@ -78,6 +78,20 @@ export default function BusinessProfile() {
             placeholder="https://maps.google.com/..."
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Instagram</label>
+            <input name="instagram_handle" value={profile.instagram_handle || ''} onChange={handleChange}
+              placeholder="@negocio"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">TikTok</label>
+            <input name="tiktok_handle" value={profile.tiktok_handle || ''} onChange={handleChange}
+              placeholder="@negocio"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+          </div>
+        </div>
 
         <button type="submit" disabled={saving}
           className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition disabled:opacity-50">

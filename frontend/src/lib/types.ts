@@ -33,6 +33,10 @@ export interface BusinessProfile {
   google_maps_url: string | null;
   logo_url: string | null;
   description: string | null;
+  instagram_handle: string | null;
+  instagram_verified: boolean;
+  tiktok_handle: string | null;
+  tiktok_verified: boolean;
   verified: boolean;
   subscription_status: SubscriptionStatus;
   created_at: string;
@@ -56,6 +60,8 @@ export interface InfluencerProfile {
   profile_photo_url: string | null;
   portfolio_urls: string[];
   estimated_price_per_post: number | null;
+  instagram_verified: boolean;
+  tiktok_verified: boolean;
   verified: boolean;
   subscription_status: SubscriptionStatus;
   created_at: string;
@@ -134,4 +140,34 @@ export interface Application {
   payout_amount: number | null;
   payout_status: PayoutStatus;
   created_at: string;
+}
+
+// ── Social Verification ─────────────────────────────────────────────────────
+
+export type VerificationPlatform = 'instagram' | 'tiktok';
+export type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'expired';
+
+export interface SocialVerificationInitRequest {
+  platform: VerificationPlatform;
+  account_handle: string;
+}
+
+export interface SocialVerificationInitResponse {
+  verification_id: string;
+  platform: VerificationPlatform;
+  account_handle: string;
+  code: string;
+  expires_at: string;
+  instructions: string;
+}
+
+export interface SocialVerificationStatusResponse {
+  verification_id: string;
+  platform: VerificationPlatform;
+  account_handle: string;
+  status: VerificationStatus;
+  code: string;
+  expires_at: string;
+  verified_at: string | null;
+  review_notes: string | null;
 }

@@ -17,6 +17,7 @@ import CampaignDetail from './pages/business/CampaignDetail';
 import CampaignsPublic from './pages/Campaigns';
 import CampaignPublicDetail from './pages/CampaignDetail';
 import Rankings from './pages/Rankings';
+import VerifySocial from './pages/VerifySocial';
 
 export default function App() {
   return (
@@ -45,37 +46,45 @@ export default function App() {
             {/* Influencer */}
             <Route
               path="/dashboard/influencer"
-              element={<ProtectedRoute requiredRole="influencer"><InfluencerDashboard /></ProtectedRoute>}
+              element={<ProtectedRoute role="influencer"><InfluencerDashboard /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/influencer/profile"
-              element={<ProtectedRoute requiredRole="influencer"><InfluencerProfile /></ProtectedRoute>}
+              element={<ProtectedRoute role="influencer"><InfluencerProfile /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/influencer/applications"
-              element={<ProtectedRoute requiredRole="influencer"><InfluencerApplications /></ProtectedRoute>}
+              element={<ProtectedRoute role="influencer"><InfluencerApplications /></ProtectedRoute>}
+            />
+            <Route
+              path="/dashboard/influencer/verify"
+              element={<ProtectedRoute role="influencer"><VerifySocial /></ProtectedRoute>}
             />
 
             {/* Business */}
             <Route
               path="/dashboard/business"
-              element={<ProtectedRoute requiredRole="business"><BusinessDashboard /></ProtectedRoute>}
+              element={<ProtectedRoute role="business"><BusinessDashboard /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/business/profile"
-              element={<ProtectedRoute requiredRole="business"><BusinessProfile /></ProtectedRoute>}
+              element={<ProtectedRoute role="business"><BusinessProfile /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/business/campaigns"
-              element={<ProtectedRoute requiredRole="business"><BusinessCampaigns /></ProtectedRoute>}
+              element={<ProtectedRoute role="business"><BusinessCampaigns /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/business/campaigns/new"
-              element={<ProtectedRoute requiredRole="business"><CreateCampaign /></ProtectedRoute>}
+              element={<ProtectedRoute role="business"><CreateCampaign /></ProtectedRoute>}
             />
             <Route
               path="/dashboard/business/campaigns/:id"
-              element={<ProtectedRoute requiredRole="business"><CampaignDetail /></ProtectedRoute>}
+              element={<ProtectedRoute role="business"><CampaignDetail /></ProtectedRoute>}
+            />
+            <Route
+              path="/dashboard/business/verify"
+              element={<ProtectedRoute role="business"><VerifySocial /></ProtectedRoute>}
             />
 
             {/* Catch-all */}
