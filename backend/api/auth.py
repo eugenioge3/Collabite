@@ -13,6 +13,7 @@ from models.schemas import (
     DevLoginRequest,
     VerifyEmailRequest,
     ForgotPasswordRequest,
+    ResendCodeRequest,
     AuthResponse,
     UserResponse,
 )
@@ -330,6 +331,35 @@ def dev_login(body: DevLoginRequest, db: Session = Depends(get_db)):
     db.refresh(user)
 
     return _build_dev_auth_response(user)
+
+
+@router.post("/resend-code")
+def resend_code(body: ResendCodeRequest):
+    settings = get_settings()
+
+    if _is_local_auth_mode(settings):
+        return {"message": "Local mode: email is already verified automatically."}
+
+    if not _is_cognito_configured(settings):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Cognito is not configured.",
+        )
+
+    cognito = _get_cognito_client()
+
+    try:
+        cognito.resend_confirmation_code(
+            ClientId=settings.cognito_client_id,
+            Username=body.email,
+        )
+    except cognito.exceptions.UserNotFoundException:
+        # Don't reveal whether the email is registered
+        pass
+    except Exception:
+        pass
+
+    return {"message": "If the email is pending verification, a new code has been sent."}
 
 
 @router.post("/forgot-password")

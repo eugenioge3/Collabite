@@ -5,6 +5,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import DashboardRedirect from './pages/DashboardRedirect';
 import InfluencerDashboard from './pages/influencer/Dashboard';
 import InfluencerProfile from './pages/influencer/Profile';
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/campaigns" element={<CampaignsPublic />} />
             <Route path="/campaigns/:id" element={<CampaignPublicDetail />} />
             <Route path="/rankings" element={<Rankings />} />

@@ -44,6 +44,10 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class ResendCodeRequest(BaseModel):
+    email: EmailStr
+
+
 class AuthResponse(BaseModel):
     access_token: str
     id_token: str

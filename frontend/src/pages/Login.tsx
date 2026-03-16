@@ -1,16 +1,33 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
 import { Eye, EyeOff } from 'lucide-react';
 
+function translateAuthError(err: any): string {
+  const detail: string = err?.response?.data?.detail ?? err?.message ?? '';
+  if (err?.response?.status === 403 && detail.includes('not verified'))
+    return 'Tu correo no está verificado. Revisa tu bandeja de entrada o';
+  if (detail.includes('NotAuthorizedException') || detail.includes('Invalid email or password'))
+    return 'Correo o contraseña incorrectos.';
+  if (detail.includes('UserNotFoundException'))
+    return 'No existe una cuenta con ese correo.';
+  if (detail.includes('UserNotConfirmedException'))
+    return 'Tu correo no está verificado. Revisa tu bandeja de entrada o';
+  return detail || 'Ocurrió un error. Inténtalo de nuevo.';
+}
+
 export default function Login() {
   const { login, devLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = (location.state as any)?.message as string | undefined;
+  const unverifiedEmail = (location.state as any)?.unverifiedEmail as string | undefined;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [needsVerify, setNeedsVerify] = useState<string | null>(unverifiedEmail ?? null);
   const [loading, setLoading] = useState(false);
   const [devLoadingRole, setDevLoadingRole] = useState<UserRole | null>(null);
   const isDev = import.meta.env.DEV;
@@ -18,12 +35,18 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNeedsVerify(null);
     setLoading(true);
     try {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión');
+      const msg = translateAuthError(err);
+      if (err?.response?.status === 403 || msg.includes('no está verificado')) {
+        setNeedsVerify(email);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -49,6 +72,25 @@ export default function Login() {
         <p className="text-gray-500 text-center mb-8">
           Bienvenido de vuelta a Collabite
         </p>
+
+        {successMessage && (
+          <div className="bg-green-50 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm">
+            {successMessage}
+          </div>
+        )}
+
+        {needsVerify && (
+          <div className="bg-yellow-50 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+            Tu correo no está verificado.{' '}
+            <Link
+              to="/verify-email"
+              state={{ email: needsVerify }}
+              className="font-semibold underline"
+            >
+              Verificar ahora
+            </Link>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 text-danger px-4 py-3 rounded-lg mb-4 text-sm">

@@ -374,3 +374,63 @@ Descripcion:
 - Activa captacion solo cuando cierres F1.
 - Durante F2, evita pausar ventas por features no criticas.
 - Usa el aprendizaje comercial para decidir el siguiente sprint de producto.
+
+---
+
+## 14) Backlog de producto — vista filtrada
+Solo las historias con Modo inicial: Producto, ordenadas por prioridad de ejecucion.
+Estas son las unicas en las que el fundador trabaja activamente en este momento.
+
+Las historias Manual/Documento/Proceso no estan aqui; siguen en sus fases correspondientes y se ejecutan en paralelo por el equipo comercial o de operacion.
+
+### Prioridad 1 — Obligatorias antes de recibir trafico (Gate B)
+
+| ID     | Historia resumida                               | Esfuerzo | Estado |
+|--------|-------------------------------------------------|----------|--------|
+| US-021 | Auth: registro/login sin errores en produccion  | M        | ✅ Completa  |
+| US-001 | Perfil de negocio completo en menos de 3 min    | M        | ✅ Completa  |
+| US-002 | Crear y publicar campana online sin friccion     | M        | ⬜ Pendiente |
+| US-003 | Estado de campana visible (draft/activa/fondead) | S        | ⬜ Pendiente |
+| US-004 | Resumen de costo total antes de pagar           | S        | ⬜ Pendiente |
+| US-005 | Ver conteo de candidatas ocultas antes de pagar | M        | ⬜ Pendiente |
+| US-006 | Desbloquear perfiles pagando                    | M        | ⬜ Pendiente |
+| US-012 | Landing con propuesta de valor local y CTA      | S        | ⬜ Pendiente |
+| US-013 | FAQ con dudas de pago y seguridad               | S        | ⬜ Pendiente |
+| US-015 | Logs minimos de eventos clave de conversion     | S        | ⬜ Pendiente |
+| US-016 | Health check y alerta basica de caida           | S        | ⬜ Pendiente |
+
+### Prioridad 2 — Para demo estable antes de contactarla (Gate A)
+
+| ID     | Historia resumida                               | Esfuerzo | Estado |
+|--------|-------------------------------------------------|----------|--------|
+| US-020 | Demo con datos de ejemplo y guion de 10-15 min  | M        | ⬜ Pendiente |
+
+### Prioridad 3 — Durante el piloto (F2, mejoran conversion)
+
+| ID     | Historia resumida                               | Esfuerzo | Estado |
+|--------|-------------------------------------------------|----------|--------|
+| US-007 | Aceptar o rechazar postulaciones desde un panel | M        | ⬜ Pendiente |
+| US-008 | Influencer ve estado de su postulacion          | S        | ⬜ Pendiente |
+
+---
+
+## 15) Ideas futuras — Registro para versiones siguientes
+Estas ideas no forman parte del backlog activo. Se registran para no perderlas y evaluar cuando haya evidencia de demanda real.
+
+### IDEA-001: Seccion de campanas altruistas (sin cobro)
+Un negocio como una organizacion de adopcion de animales puede publicar una campana sin presupuesto monetario. El influencer participa por voluntad propia, sin pago. La plataforma no cobra comision.
+- Valor: diferenciacion de marca, engagement de influencers con causa, PR potencial.
+- Consideraciones tecnicas: requiere nuevo tipo de campana (`tipo: altruista`), flujo sin paywall, posiblemente badge o seccion separada en la app.
+- Cuando evaluar: cuando haya traccion organica y se quiera diversificar propuesta de valor.
+
+### IDEA-002: Chatbot en la pagina
+Un chatbot que responde preguntas frecuentes de negocios e influencers y ademas registra preguntas especificas que no pudo responder, alimentando el backlog de FAQ y de producto.
+- Valor: soporte 24/7, reduccion de carga manual, inteligencia de mercado en tiempo real.
+- Consideraciones tecnicas: puede empezar con un widget de terceros (Intercom, Crisp, Tidio) antes de construir uno propio. El registro de preguntas no respondidas puede ser tan simple como un sheet.
+- Cuando evaluar: cuando el volumen de preguntas repetidas justifique la automatizacion.
+
+### IDEA-003: Timer en postulaciones y detalles de presencia fisica
+Al postularse, el influencer ve un contador de tiempo disponible para cerrar o confirmar. Ademas, la campana puede indicar si requiere presencia fisica (ej. visita a restaurante, tienda, evento) con detalles de lugar y logistica.
+- Valor: reduce postulaciones fantasma, mejora calidad de match, da contexto real al influencer.
+- Consideraciones tecnicas: timer requiere campo `expires_at` en postulacion y logica de expiracion. Presencia fisica requiere campos opcionales en campana: `requiere_visita: bool`, `direccion`, `instrucciones_visita`.
+- Cuando evaluar: cuando haya suficientes postulaciones reales para detectar el problema de no-respuesta o mal match.

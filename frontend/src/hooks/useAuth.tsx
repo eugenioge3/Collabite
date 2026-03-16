@@ -9,6 +9,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   devLogin: (role: UserRole) => Promise<void>;
   register: (email: string, password: string, role: UserRole) => Promise<string>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendCode: (email: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -68,6 +70,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.data.message;
   };
 
+  const verifyEmail = async (email: string, code: string) => {
+    await api.post('/auth/verify-email', { email, code });
+  };
+
+  const resendCode = async (email: string) => {
+    await api.post('/auth/resend-code', { email });
+  };
+
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('id_token');
@@ -76,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, devLogin, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, devLogin, register, verifyEmail, resendCode, logout }}>
       {children}
     </AuthContext.Provider>
   );
