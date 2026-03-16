@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/apiError';
 import type { Campaign, Application } from '../../lib/types';
 import {
   ArrowLeft,
@@ -66,8 +67,8 @@ export default function CampaignDetail() {
       setApplications((prev) =>
         prev.map((a) => a.id === appId ? res.data : a)
       );
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo actualizar la aplicación');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo actualizar la aplicación'));
     }
     setActionLoading(null);
   };
@@ -78,8 +79,8 @@ export default function CampaignDetail() {
     try {
       const res = await api.post(`/applications/${appId}/unlock-contact`);
       setApplications((prev) => prev.map((a) => (a.id === appId ? res.data : a)));
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo desbloquear el contacto');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo desbloquear el contacto'));
     }
     setActionLoading(null);
   };
@@ -91,8 +92,8 @@ export default function CampaignDetail() {
     try {
       const res = await api.post(`/campaigns/${id}/publish`);
       setCampaign(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo publicar la campaña');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo publicar la campaña'));
     }
     setPublishing(false);
   };
@@ -106,8 +107,8 @@ export default function CampaignDetail() {
       setCampaign(res.data);
       const appsRes = await api.get(`/applications/campaign/${id}`).catch(() => ({ data: [] }));
       setApplications(appsRes.data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo completar el pago');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo completar el pago'));
     }
     setPaying(false);
   };
@@ -122,8 +123,8 @@ export default function CampaignDetail() {
     try {
       await api.delete(`/campaigns/${id}`);
       navigate('/dashboard/business/campaigns');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo eliminar la campana');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo eliminar la campana'));
       setDeleting(false);
     }
   };

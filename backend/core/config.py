@@ -1,8 +1,10 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
     environment: str = "dev"
 
     # Cognito
@@ -37,11 +39,6 @@ class Settings(BaseSettings):
     instagram_ota_handle: str = "collabite_mx"
     tiktok_ota_handle: str = "collabite_mx"
     manual_verification_admin_token: str = ""
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-
 
 @lru_cache()
 def get_settings() -> Settings:

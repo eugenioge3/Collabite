@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend migrate install help
+.PHONY: dev backend frontend migrate install help lint test test-backend test-frontend smoke qa
 
 # Default target
 help:
@@ -8,6 +8,10 @@ help:
 	@echo "  make frontend  Solo frontend (http://localhost:5173)"
 	@echo "  make migrate   Corre migraciones de Alembic"
 	@echo "  make install   Instala dependencias de backend y frontend"
+	@echo "  make lint      Corre lint del frontend"
+	@echo "  make test      Corre tests unitarios de backend y frontend"
+	@echo "  make smoke     Corre smoke test local del stack"
+	@echo "  make qa        Corre gate manual: tests + build + smoke"
 	@echo ""
 
 # Levanta ambos en paralelo; Ctrl+C mata los dos
@@ -33,3 +37,25 @@ install:
 	@echo "→ Frontend: instalando dependencias..."
 	@cd frontend && npm ci --silent
 	@echo "✓ Listo"
+
+lint:
+	@echo "→ Frontend lint"
+	@cd frontend && npm run lint
+
+test: test-backend test-frontend
+
+test-backend:
+	@echo "→ Backend tests"
+	@cd backend && .venv/bin/python -m pytest -q
+
+test-frontend:
+	@echo "→ Frontend tests"
+	@cd frontend && npm run test
+
+smoke:
+	@bash scripts/smoke-local.sh
+
+qa: lint test
+	@echo "→ Frontend build"
+	@cd frontend && npm run build
+	@$(MAKE) smoke

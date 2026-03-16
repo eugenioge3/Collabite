@@ -2,11 +2,17 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
+import { getApiErrorDetail, getApiErrorMessage, getApiErrorStatus } from '../lib/apiError';
 import { Eye, EyeOff } from 'lucide-react';
 
-function translateAuthError(err: any): string {
-  const detail: string = err?.response?.data?.detail ?? err?.message ?? '';
-  if (err?.response?.status === 403 && detail.includes('not verified'))
+type LoginLocationState = {
+  message?: string;
+  unverifiedEmail?: string;
+};
+
+function translateAuthError(err: unknown): string {
+  const detail = getApiErrorDetail(err) || '';
+  if (getApiErrorStatus(err) === 403 && detail.includes('not verified'))
     return 'Tu correo no está verificado. Revisa tu bandeja de entrada o';
   if (detail.includes('NotAuthorizedException') || detail.includes('Invalid email or password'))
     return 'Correo o contraseña incorrectos.';
@@ -21,8 +27,9 @@ export default function Login() {
   const { login, devLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const successMessage = (location.state as any)?.message as string | undefined;
-  const unverifiedEmail = (location.state as any)?.unverifiedEmail as string | undefined;
+  const locationState = (location.state ?? null) as LoginLocationState | null;
+  const successMessage = locationState?.message;
+  const unverifiedEmail = locationState?.unverifiedEmail;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -40,9 +47,9 @@ export default function Login() {
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       const msg = translateAuthError(err);
-      if (err?.response?.status === 403 || msg.includes('no está verificado')) {
+      if (getApiErrorStatus(err) === 403 || msg.includes('no está verificado')) {
         setNeedsVerify(email);
       } else {
         setError(msg);
@@ -58,8 +65,8 @@ export default function Login() {
     try {
       await devLogin(role);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al iniciar demo local');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Error al iniciar demo local'));
     } finally {
       setDevLoadingRole(null);
     }

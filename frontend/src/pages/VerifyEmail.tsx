@@ -1,15 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { getApiErrorDetail } from '../lib/apiError';
 import { MailCheck } from 'lucide-react';
 
 const RESEND_COOLDOWN = 60;
+
+type VerifyEmailLocationState = {
+  email?: string;
+};
 
 export default function VerifyEmail() {
   const { verifyEmail, resendCode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const emailFromState = (location.state as any)?.email as string | undefined;
+  const locationState = (location.state ?? null) as VerifyEmailLocationState | null;
+  const emailFromState = locationState?.email;
 
   const [email, setEmail] = useState(emailFromState ?? '');
   const [code, setCode] = useState('');
@@ -47,8 +53,8 @@ export default function VerifyEmail() {
       navigate('/login', {
         state: { message: '¡Correo verificado! Ya puedes iniciar sesión.' },
       });
-    } catch (err: any) {
-      const detail: string = err?.response?.data?.detail ?? '';
+    } catch (err: unknown) {
+      const detail = getApiErrorDetail(err) || '';
       if (detail.includes('CodeMismatchException') || detail.includes('Invalid verification code')) {
         setError('Código incorrecto. Revisa el correo e inténtalo de nuevo.');
       } else if (detail.includes('ExpiredCodeException') || detail.includes('expired')) {

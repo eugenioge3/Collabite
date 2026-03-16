@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/apiError';
 import type { Niche, Currency } from '../../lib/types';
 import { Loader } from 'lucide-react';
 
@@ -72,8 +73,8 @@ export default function CreateCampaign() {
       };
       const res = await api.post('/campaigns', payload);
       navigate(`/dashboard/business/campaigns/${res.data.id}`);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al crear campaña');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Error al crear campaña'));
     } finally {
       setLoading(false);
     }

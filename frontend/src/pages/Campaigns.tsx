@@ -12,19 +12,43 @@ export default function CampaignsPublic() {
   const [city, setCity] = useState('');
   const [niche, setNiche] = useState('');
 
-  const fetchCampaigns = () => {
-    setLoading(true);
+  const buildSearchParams = () => {
     const params = new URLSearchParams();
     params.set('status', 'open');
     if (city.trim()) params.set('city', city.trim());
     if (niche) params.set('niche', niche);
+    return params;
+  };
+
+  const fetchCampaigns = () => {
+    setLoading(true);
+    const params = buildSearchParams();
     api.get(`/campaigns?${params}`)
       .then((r) => setCampaigns(r.data))
       .catch(() => setCampaigns([]))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchCampaigns(); }, []);
+  useEffect(() => {
+    let active = true;
+    const params = new URLSearchParams();
+    params.set('status', 'open');
+
+    api.get(`/campaigns?${params}`)
+      .then((r) => {
+        if (active) setCampaigns(r.data);
+      })
+      .catch(() => {
+        if (active) setCampaigns([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

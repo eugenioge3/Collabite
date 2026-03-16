@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { getApiErrorMessage } from '../lib/apiError';
 import type {
   ManualPendingVerificationItem,
   VerificationPlatform,
@@ -44,9 +45,9 @@ export default function AdminVerifications() {
         },
       });
       setItems(res.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setItems([]);
-      setError(err.response?.data?.detail || 'No se pudo obtener verificaciones pendientes.');
+      setError(getApiErrorMessage(err, 'No se pudo obtener verificaciones pendientes.'));
     } finally {
       setLoading(false);
     }
@@ -75,8 +76,8 @@ export default function AdminVerifications() {
         { headers: { 'x-admin-token': adminToken.trim() } }
       );
       await fetchPending();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo aprobar.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo aprobar.'));
     }
   };
 
@@ -91,8 +92,8 @@ export default function AdminVerifications() {
         { headers: { 'x-admin-token': adminToken.trim() } }
       );
       await fetchPending();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo rechazar.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo rechazar.'));
     }
   };
 
@@ -126,8 +127,8 @@ export default function AdminVerifications() {
       setQuickHandle('');
       setQuickNote('');
       await fetchPending();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo aprobar por código.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo aprobar por código.'));
     } finally {
       setQuickLoading(false);
     }

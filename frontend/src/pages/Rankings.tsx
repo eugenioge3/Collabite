@@ -11,21 +11,47 @@ export default function Rankings() {
   const [city, setCity] = useState('');
   const [niche, setNiche] = useState('');
 
-  const fetchRankings = () => {
-    setLoading(true);
+  const buildSearchParams = () => {
     const params = new URLSearchParams();
     params.set('sort', 'followers');
     params.set('sort_by', 'followers_instagram');
     params.set('limit', '50');
     if (city.trim()) params.set('city', city.trim());
     if (niche) params.set('niche', niche);
+    return params;
+  };
+
+  const fetchRankings = () => {
+    setLoading(true);
+    const params = buildSearchParams();
     api.get(`/influencers?${params}`)
       .then((r) => setInfluencers(r.data))
       .catch(() => setInfluencers([]))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchRankings(); }, []);
+  useEffect(() => {
+    let active = true;
+    const params = new URLSearchParams();
+    params.set('sort', 'followers');
+    params.set('sort_by', 'followers_instagram');
+    params.set('limit', '50');
+
+    api.get(`/influencers?${params}`)
+      .then((r) => {
+        if (active) setInfluencers(r.data);
+      })
+      .catch(() => {
+        if (active) setInfluencers([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

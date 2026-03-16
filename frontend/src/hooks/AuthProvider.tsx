@@ -1,39 +1,41 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import api from '../lib/api';
 import type { User, UserRole } from '../lib/types';
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  devLogin: (role: UserRole) => Promise<void>;
-  register: (email: string, password: string, role: UserRole) => Promise<string>;
-  verifyEmail: (email: string, code: string) => Promise<void>;
-  resendCode: (email: string) => Promise<void>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | null>(null);
+import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('access_token')));
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    if (token) {
-      api.get('/auth/me')
-        .then((res) => setUser(res.data))
-        .catch(() => {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('id_token');
-          localStorage.removeItem('refresh_token');
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+    if (!token) {
+      return;
     }
+
+    let active = true;
+
+    api.get('/auth/me')
+      .then((res) => {
+        if (active) {
+          setUser(res.data);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('id_token');
+        localStorage.removeItem('refresh_token');
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -90,10 +92,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 }

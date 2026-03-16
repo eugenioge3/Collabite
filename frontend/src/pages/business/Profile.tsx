@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/apiError';
 import type { BusinessCategory } from '../../lib/types';
 import {
   BUSINESS_CATEGORY_LABELS,
@@ -59,10 +60,10 @@ export default function BusinessProfile() {
       setForm(createBusinessProfileForm(res.data, user?.email));
       setErrors({});
       setMessage({ type: 'success', text: 'Perfil guardado. Ya puedes avanzar a crear tu campana.' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessage({
         type: 'error',
-        text: err.response?.data?.detail || 'No se pudo guardar el perfil. Intentalo de nuevo.',
+        text: getApiErrorMessage(err, 'No se pudo guardar el perfil. Intentalo de nuevo.'),
       });
     } finally {
       setSaving(false);

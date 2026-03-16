@@ -156,6 +156,30 @@ Y usa:
 - `Entrar demo Negocio`
 - `Entrar demo Influencer`
 
+### 8. Quality Gate Manual
+
+Antes de mover cambios importantes o preparar una salida a produccion, corre este gate local:
+
+```bash
+make qa
+```
+
+Que valida hoy:
+- Lint de frontend (`eslint`)
+- Tests unitarios de backend (`pytest`)
+- Tests unitarios de frontend (`vitest`)
+- Build de frontend en modo produccion
+- Smoke test local del stack (`backend + frontend + health + auth local`)
+
+Tambien puedes correrlo por partes:
+
+```bash
+make test
+make smoke
+```
+
+Nota: por ahora este gate es manual. Mas adelante lo podemos llevar a GitHub Actions o a una ejecucion diaria programada.
+
 ## Remote Deploy
 
 Los scripts de `scripts/deploy.sh` y `scripts/deploy-frontend.sh` despliegan a AWS. No son necesarios para correr la app en local.

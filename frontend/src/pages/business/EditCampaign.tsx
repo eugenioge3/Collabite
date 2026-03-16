@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/apiError';
 import type { Campaign, Currency, Niche } from '../../lib/types';
 import { ArrowLeft, Loader } from 'lucide-react';
 
@@ -56,8 +57,8 @@ export default function EditCampaign() {
           includes: campaign.includes.length > 0 ? campaign.includes : [''],
         });
       })
-      .catch((err: any) => {
-        setError(err.response?.data?.detail || 'No se pudo cargar la campaña');
+      .catch((err: unknown) => {
+        setError(getApiErrorMessage(err, 'No se pudo cargar la campaña'));
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -109,8 +110,8 @@ export default function EditCampaign() {
 
       await api.put(`/campaigns/${id}`, payload);
       navigate(`/dashboard/business/campaigns/${id}`);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo guardar el borrador');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo guardar el borrador'));
     } finally {
       setSaving(false);
     }

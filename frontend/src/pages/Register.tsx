@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
+import { getApiErrorDetail } from '../lib/apiError';
 import { Building2, User, Eye, EyeOff, Check, X } from 'lucide-react';
 
-function translateAuthError(err: any): string {
-  const detail: string = err?.response?.data?.detail ?? err?.message ?? '';
+function translateAuthError(err: unknown): string {
+  const detail = getApiErrorDetail(err) || '';
   if (detail.includes('already exists') || detail.includes('UsernameExistsException'))
     return 'Ya existe una cuenta con ese correo. ¿Quieres iniciar sesión?';
   if (detail.includes('Password did not conform') || detail.includes('password') && detail.includes('policy'))
@@ -56,7 +57,7 @@ export default function Register() {
       } else {
         navigate('/verify-email', { state: { email } });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(translateAuthError(err));
     } finally {
       setLoading(false);
