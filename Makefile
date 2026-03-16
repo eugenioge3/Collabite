@@ -1,4 +1,6 @@
-.PHONY: dev backend frontend migrate install help lint test test-backend test-frontend smoke qa
+.PHONY: dev backend frontend migrate install help lint test test-backend test-frontend smoke qa release-check release-check-local
+
+ENV ?= dev
 
 # Default target
 help:
@@ -12,6 +14,8 @@ help:
 	@echo "  make test      Corre tests unitarios de backend y frontend"
 	@echo "  make smoke     Corre smoke test local del stack"
 	@echo "  make qa        Corre gate manual: tests + build + smoke"
+	@echo "  make release-check       Gate de salida a produccion (local + remoto)"
+	@echo "  make release-check-local Gate de salida solo local"
 	@echo ""
 
 # Levanta ambos en paralelo; Ctrl+C mata los dos
@@ -59,3 +63,9 @@ qa: lint test
 	@echo "→ Frontend build"
 	@cd frontend && npm run build
 	@$(MAKE) smoke
+
+release-check:
+	@bash scripts/release-readiness.sh "$(ENV)"
+
+release-check-local:
+	@bash scripts/release-readiness.sh "$(ENV)" --local-only

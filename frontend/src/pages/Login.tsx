@@ -2,26 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
-import { getApiErrorDetail, getApiErrorMessage, getApiErrorStatus } from '../lib/apiError';
+import { getApiErrorMessage } from '../lib/apiError';
+import { shouldPromptEmailVerification, translateLoginError } from '../lib/authMessages';
 import { Eye, EyeOff } from 'lucide-react';
 
 type LoginLocationState = {
   message?: string;
   unverifiedEmail?: string;
 };
-
-function translateAuthError(err: unknown): string {
-  const detail = getApiErrorDetail(err) || '';
-  if (getApiErrorStatus(err) === 403 && detail.includes('not verified'))
-    return 'Tu correo no está verificado. Revisa tu bandeja de entrada o';
-  if (detail.includes('NotAuthorizedException') || detail.includes('Invalid email or password'))
-    return 'Correo o contraseña incorrectos.';
-  if (detail.includes('UserNotFoundException'))
-    return 'No existe una cuenta con ese correo.';
-  if (detail.includes('UserNotConfirmedException'))
-    return 'Tu correo no está verificado. Revisa tu bandeja de entrada o';
-  return detail || 'Ocurrió un error. Inténtalo de nuevo.';
-}
 
 export default function Login() {
   const { login, devLogin } = useAuth();
@@ -48,8 +36,8 @@ export default function Login() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: unknown) {
-      const msg = translateAuthError(err);
-      if (getApiErrorStatus(err) === 403 || msg.includes('no está verificado')) {
+      const msg = translateLoginError(err);
+      if (shouldPromptEmailVerification(err, msg)) {
         setNeedsVerify(email);
       } else {
         setError(msg);

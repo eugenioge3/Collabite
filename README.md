@@ -180,6 +180,43 @@ make smoke
 
 Nota: por ahora este gate es manual. Mas adelante lo podemos llevar a GitHub Actions o a una ejecucion diaria programada.
 
+### 9. Release Readiness y Rollback
+
+Antes de desplegar a un ambiente online, corre:
+
+```bash
+make release-check ENV=dev
+```
+
+Si solo quieres validar localmente (sin checks remotos AWS/Terraform):
+
+```bash
+make release-check-local ENV=dev
+```
+
+Cuando el gate pase, despliegas con:
+
+```bash
+./scripts/deploy.sh dev
+./scripts/deploy-frontend.sh dev
+```
+
+Rollback operativo (ultima version estable conocida):
+
+```bash
+git checkout <KNOWN_GOOD_SHA>
+make qa
+./scripts/deploy.sh dev
+./scripts/deploy-frontend.sh dev
+git checkout -
+```
+
+Post-deploy minimo:
+
+```bash
+curl https://<API_DOMAIN>/api/health
+```
+
 ## Remote Deploy
 
 Los scripts de `scripts/deploy.sh` y `scripts/deploy-frontend.sh` despliegan a AWS. No son necesarios para correr la app en local.

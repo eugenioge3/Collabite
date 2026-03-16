@@ -417,9 +417,9 @@ Las historias Manual/Documento/Proceso no estan aqui; siguen en sus fases corres
 | ID     | Historia resumida                                              | Esfuerzo | Estado |
 |--------|----------------------------------------------------------------|----------|--------|
 | US-026 | Gate manual de calidad: tests, build y smoke local             | M        | ✅ Completa  |
-| US-027 | Suite backend para flujos criticos de auth, perfil y campanas  | M        | ⬜ Pendiente |
-| US-028 | Suite frontend para helpers y flujos criticos                  | M        | ⬜ Pendiente |
-| US-029 | Checklist de salida a produccion y rollback                    | S        | ⬜ Pendiente |
+| US-027 | Suite backend para flujos criticos de auth, perfil y campanas  | M        | ✅ Completa  |
+| US-028 | Suite frontend para helpers y flujos criticos                  | M        | ✅ Completa  |
+| US-029 | Checklist de salida a produccion y rollback                    | S        | ✅ Completa  |
 
 ---
 

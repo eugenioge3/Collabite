@@ -2,19 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
-import { getApiErrorDetail } from '../lib/apiError';
+import { translateRegisterError } from '../lib/authMessages';
 import { Building2, User, Eye, EyeOff, Check, X } from 'lucide-react';
-
-function translateAuthError(err: unknown): string {
-  const detail = getApiErrorDetail(err) || '';
-  if (detail.includes('already exists') || detail.includes('UsernameExistsException'))
-    return 'Ya existe una cuenta con ese correo. ¿Quieres iniciar sesión?';
-  if (detail.includes('Password did not conform') || detail.includes('password') && detail.includes('policy'))
-    return 'La contraseña no cumple los requisitos: mínimo 8 caracteres, mayúsculas, minúsculas, número y símbolo.';
-  if (detail.includes('Invalid email'))
-    return 'Correo electrónico no válido.';
-  return detail || 'Ocurrió un error. Inténtalo de nuevo.';
-}
 
 const passwordRules = [
   { label: 'Mínimo 8 caracteres', test: (p: string) => p.length >= 8 },
@@ -58,7 +47,7 @@ export default function Register() {
         navigate('/verify-email', { state: { email } });
       }
     } catch (err: unknown) {
-      setError(translateAuthError(err));
+      setError(translateRegisterError(err));
     } finally {
       setLoading(false);
     }
