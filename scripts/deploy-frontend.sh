@@ -2,9 +2,19 @@
 # Build and deploy frontend to S3 + invalidate CloudFront cache
 set -euo pipefail
 
+require_cmd() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "ERROR: required command not found: $1" >&2
+    exit 1
+  fi
+}
+
 ENVIRONMENT="${1:-dev}"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
+
+require_cmd npm
+require_cmd aws
 
 echo "==> Building frontend..."
 cd "$FRONTEND_DIR"
@@ -21,7 +31,7 @@ if [ -n "$DISTRIBUTION_ID" ]; then
   aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*" > /dev/null
   echo "    CloudFront invalidation created"
 else
-  echo "    Skipping CloudFront invalidation (no distribution ID found)"
+  echo "    Skipping CloudFront invalidation (terraform unavailable or no distribution ID found)"
 fi
 
 echo "==> Frontend deploy complete!"
