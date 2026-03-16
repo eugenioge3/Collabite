@@ -71,9 +71,26 @@ python3 -m venv .venv
 cp .env.example .env
 ```
 
-### 3. Levantar backend
+### 3. Levantar backend + frontend juntos (recomendado)
 
-Comando recomendado desde la raiz del repo:
+Desde la raiz del repo:
+
+```bash
+make dev
+```
+
+Levanta ambos procesos en paralelo. `Ctrl+C` los detiene a los dos.
+
+O por separado:
+
+```bash
+make backend    # solo backend
+make frontend   # solo frontend
+```
+
+---
+
+**Alternativa manual — solo backend:**
 
 ```bash
 ./scripts/run-local-backend.sh
