@@ -394,7 +394,7 @@ Las historias Manual/Documento/Proceso no estan aqui; siguen en sus fases corres
 | US-004 | Resumen de costo total antes de pagar           | S        | ✅ Completa  |
 | US-005 | Ver conteo de candidatas ocultas antes de pagar | M        | ✅ Completa  |
 | US-006 | Desbloquear perfiles pagando                    | M        | ✅ Completa  |
-| US-012 | Landing con propuesta de valor local y CTA      | S        | ⬜ Pendiente |
+| US-012 | Landing con propuesta de valor local y CTA      | S        | ✅ Completa  |
 | US-013 | FAQ con dudas de pago y seguridad               | S        | ⬜ Pendiente |
 | US-015 | Logs minimos de eventos clave de conversion     | S        | ⬜ Pendiente |
 | US-016 | Health check y alerta basica de caida           | S        | ✅ Completa  |

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
 import { translateRegisterError } from '../lib/authMessages';
@@ -16,9 +16,15 @@ const passwordRules = [
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole | null>(null);
+  const initialRole = searchParams.get('role');
+  const [role, setRole] = useState<UserRole | null>(
+    initialRole === 'business' || initialRole === 'influencer'
+      ? initialRole
+      : null,
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [error, setError] = useState('');
