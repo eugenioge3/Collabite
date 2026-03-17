@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
+import {
+  getMexicoCitiesByState,
+  getMexicoStateOptions,
+  normalizeMexicoCity,
+  normalizeMexicoState,
+} from '../../lib/mxLocations';
 import type { InfluencerBusinessRanking, Niche } from '../../lib/types';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, MapPin, ShieldCheck } from 'lucide-react';
@@ -9,14 +15,19 @@ const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
 export default function InfluencerRankingsPrivate() {
   const [influencers, setInfluencers] = useState<InfluencerBusinessRanking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [state, setState] = useState('');
   const [city, setCity] = useState('');
   const [niche, setNiche] = useState('');
+
+  const stateOptions = getMexicoStateOptions(state);
+  const cityOptions = getMexicoCitiesByState(state, city);
 
   const fetchRankings = () => {
     setLoading(true);
     const params = new URLSearchParams();
     params.set('sort_by', 'followers_instagram');
     params.set('limit', '50');
+    if (state.trim()) params.set('state', state.trim());
     if (city.trim()) params.set('city', city.trim());
     if (niche) params.set('niche', niche);
 
@@ -30,6 +41,18 @@ export default function InfluencerRankingsPrivate() {
     fetchRankings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleStateChange = (value: string) => {
+    const nextState = normalizeMexicoState(value) || '';
+    if (state !== nextState) {
+      setCity('');
+    }
+    setState(nextState);
+  };
+
+  const handleCityChange = (value: string) => {
+    setCity(normalizeMexicoCity(value) || '');
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,12 +79,25 @@ export default function InfluencerRankingsPrivate() {
       </div>
 
       <form onSubmit={handleSearch} className="flex flex-wrap gap-3 mb-8">
-        <input
+        <select
+          value={state}
+          onChange={(e) => handleStateChange(e.target.value)}
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-white min-w-[180px]"
+        >
+          <option value="">Estado</option>
+          {stateOptions.map((stateOption) => <option key={stateOption} value={stateOption}>{stateOption}</option>)}
+        </select>
+
+        <select
           value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="Filtrar por ciudad"
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm min-w-[180px]"
-        />
+          onChange={(e) => handleCityChange(e.target.value)}
+          disabled={!state}
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-white min-w-[180px] disabled:bg-gray-50"
+        >
+          <option value="">{state ? 'Ciudad' : 'Primero selecciona estado'}</option>
+          {cityOptions.map((cityOption) => <option key={cityOption} value={cityOption}>{cityOption}</option>)}
+        </select>
+
         <select
           value={niche}
           onChange={(e) => setNiche(e.target.value)}

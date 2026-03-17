@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.auth import get_optional_current_user, require_role
-from core.location import normalize_mexico_location
+from core.location import normalize_mexico_city, normalize_mexico_location, normalize_mexico_state
 from models.models import (
     User,
     Campaign,
@@ -95,6 +95,14 @@ def _normalize_campaign_location_fields(payload: dict) -> dict:
             normalized["state"] = canonical_state
 
     return normalized
+
+
+def _normalize_campaign_search_filters(
+    *,
+    city: str | None,
+    state: str | None,
+) -> tuple[str | None, str | None]:
+    return normalize_mexico_city(city), normalize_mexico_state(state)
 
 
 def _short_text(value: str | None, max_words: int = 8, max_chars: int = 70) -> str:
@@ -204,6 +212,7 @@ def list_my_campaigns(
 @router.get("", response_model=list[CampaignPublicResponse])
 def list_campaigns(
     city: str | None = Query(None),
+    state: str | None = Query(None),
     niche: Niche | None = Query(None),
     min_budget: float | None = Query(None, ge=0),
     max_budget: float | None = Query(None, ge=0),
@@ -213,13 +222,17 @@ def list_campaigns(
     db: Session = Depends(get_db),
 ):
     """Public view for influencers with optional applied state and anonymized business hints."""
+    city_filter, state_filter = _normalize_campaign_search_filters(city=city, state=state)
+
     query = db.query(Campaign).filter(
         Campaign.is_deleted == False,
         Campaign.status.in_([CampaignStatus.active, CampaignStatus.funded]),
     )
 
-    if city:
-        query = query.filter(Campaign.city.ilike(f"%{city}%"))
+    if city_filter:
+        query = query.filter(Campaign.city.ilike(f"%{city_filter}%"))
+    if state_filter:
+        query = query.filter(Campaign.state.ilike(f"%{state_filter}%"))
     if niche:
         query = query.filter(Campaign.niche_required == niche)
     if min_budget is not None:

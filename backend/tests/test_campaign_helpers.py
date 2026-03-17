@@ -6,6 +6,7 @@ from api.campaigns import (
     _ensure_publish_requirements,
     _missing_publish_requirements,
     _normalize_campaign_location_fields,
+    _normalize_campaign_search_filters,
     _short_text,
     _to_public_campaign_response,
 )
@@ -149,3 +150,13 @@ def test_normalize_campaign_location_fields_keeps_known_state_and_city():
 
     assert normalized["state"] == "Quintana Roo"
     assert normalized["city"] == "Cancun"
+
+
+def test_normalize_campaign_search_filters_canonicalizes_city_and_state_aliases():
+    city_filter, state_filter = _normalize_campaign_search_filters(
+        city="cdmx",
+        state="df",
+    )
+
+    assert city_filter == "Ciudad de Mexico"
+    assert state_filter == "Ciudad de Mexico"
