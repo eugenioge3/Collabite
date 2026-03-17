@@ -20,6 +20,7 @@ import InfluencerRankingsPrivate from './pages/business/InfluencerRankings';
 import CampaignsPublic from './pages/Campaigns';
 import CampaignPublicDetail from './pages/CampaignDetail';
 import Rankings from './pages/Rankings';
+import FaqPage from './pages/Faq';
 import VerifySocial from './pages/VerifySocial';
 import AdminVerifications from './pages/AdminVerifications';
 
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/campaigns" element={<CampaignsPublic />} />
             <Route path="/campaigns/:id" element={<CampaignPublicDetail />} />
             <Route path="/rankings" element={<Rankings />} />
+            <Route path="/faq" element={<FaqPage />} />
 
             {/* Auth redirect */}
             <Route
