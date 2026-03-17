@@ -94,4 +94,21 @@ describe('businessProfile helpers', () => {
     expect(payload.instagram_handle).toBe('tacosdelmar');
     expect(payload.tiktok_handle).toBe('tacosdelmar.mx');
   });
+
+  it('normalizes CDMX aliases in city and state payload fields', () => {
+    const payload = getBusinessProfileUpdatePayload({
+      business_name: 'Cafeteria Centro',
+      category: 'cafe',
+      city: 'cdmx',
+      state: '',
+      country: 'Mexico',
+      google_maps_url: '',
+      description: '',
+      instagram_handle: '',
+      tiktok_handle: '',
+    });
+
+    expect(payload.city).toBe('Ciudad de Mexico');
+    expect(payload.state).toBe('Ciudad de Mexico');
+  });
 });

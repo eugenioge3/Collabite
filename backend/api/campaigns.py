@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.auth import get_optional_current_user, require_role
+from core.location import normalize_mexico_location
 from models.models import (
     User,
     Campaign,
@@ -73,6 +74,29 @@ def _ensure_publish_requirements(*, title: str | None, budget: float | int | Non
         )
 
 
+def _normalize_campaign_location_fields(payload: dict) -> dict:
+    normalized = dict(payload)
+    has_city = "city" in normalized
+    has_state = "state" in normalized
+
+    if not has_city and not has_state:
+        return normalized
+
+    canonical_state, canonical_city = normalize_mexico_location(
+        normalized.get("state"),
+        normalized.get("city"),
+    )
+
+    if has_state:
+        normalized["state"] = canonical_state
+    if has_city:
+        normalized["city"] = canonical_city
+        if not has_state and canonical_state:
+            normalized["state"] = canonical_state
+
+    return normalized
+
+
 def _short_text(value: str | None, max_words: int = 8, max_chars: int = 70) -> str:
     if not value:
         return ""
@@ -138,15 +162,17 @@ def create_campaign(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    campaign_data = _normalize_campaign_location_fields(
+        body.model_dump(exclude={"publish_now"})
+    )
+
     if body.publish_now:
         _ensure_publish_requirements(
-            title=body.title,
-            budget=body.budget,
-            city=body.city,
-            niche_required=body.niche_required,
+            title=campaign_data.get("title"),
+            budget=campaign_data.get("budget"),
+            city=campaign_data.get("city"),
+            niche_required=campaign_data.get("niche_required"),
         )
-
-    campaign_data = body.model_dump(exclude={"publish_now"})
 
     campaign = Campaign(
         business_user_id=user.id,
@@ -349,7 +375,7 @@ def update_campaign(
             detail="Only draft campaigns can be edited",
         )
 
-    update_data = body.model_dump(exclude_unset=True)
+    update_data = _normalize_campaign_location_fields(body.model_dump(exclude_unset=True))
     for field, value in update_data.items():
         setattr(campaign, field, value)
 

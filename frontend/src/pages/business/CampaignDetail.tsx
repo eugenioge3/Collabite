@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/apiError';
+import { getCampaignStatusMeta } from '../../lib/campaignStatus';
 import type { Campaign, Application } from '../../lib/types';
 import {
   ArrowLeft,
@@ -18,7 +19,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 
-const STATUS_COLORS: Record<string, string> = {
+const APPLICATION_STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   accepted: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
@@ -140,8 +141,12 @@ export default function CampaignDetail() {
   if (loading) return <div className="flex justify-center py-20 text-gray-400">Cargando...</div>;
   if (!campaign) return <div className="text-center py-20 text-gray-400">Campaña no encontrada</div>;
 
+  const statusMeta = getCampaignStatusMeta(campaign.status);
   const canEditDraft = campaign.status === 'draft';
   const canDeletePublished = campaign.status === 'active' || campaign.status === 'funded';
+  const canPublishDraft = statusMeta.primaryAction === 'publish';
+  const canFundCampaign = statusMeta.primaryAction === 'fund_escrow';
+  const canReviewApplicants = statusMeta.primaryAction === 'review_applications';
   const needsPaymentToReview = !campaign.escrow_funded;
 
   return (
@@ -156,12 +161,57 @@ export default function CampaignDetail() {
         </div>
       )}
 
+      <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-gray-500">Estado actual</p>
+          <p className="font-semibold text-gray-900">{statusMeta.label}</p>
+          <p className="text-sm text-gray-600">{statusMeta.nextStep}</p>
+        </div>
+
+        <div className="shrink-0">
+          {canPublishDraft && (
+            <button
+              onClick={handlePublishCampaign}
+              disabled={publishing}
+              className="inline-flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-dark transition disabled:opacity-50"
+            >
+              {publishing ? <Loader className="animate-spin" size={14} /> : <Rocket size={14} />}
+              {publishing ? 'Publicando...' : statusMeta.ctaLabel}
+            </button>
+          )}
+
+          {canFundCampaign && (
+            <button
+              onClick={handleFundEscrow}
+              disabled={paying}
+              className="inline-flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-50"
+            >
+              {paying ? <Loader className="animate-spin" size={14} /> : <CreditCard size={14} />}
+              {paying ? 'Procesando pago...' : statusMeta.ctaLabel}
+            </button>
+          )}
+
+          {canReviewApplicants && (
+            <a
+              href="#applications"
+              className="inline-flex items-center gap-1.5 border border-primary text-primary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/5 transition"
+            >
+              {statusMeta.ctaLabel}
+            </a>
+          )}
+
+          {statusMeta.primaryAction === 'none' && (
+            <span className="text-xs text-gray-500">Sin acciones pendientes</span>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white border rounded-lg p-6 mb-6">
         <div className="flex items-start justify-between mb-4">
           <h1 className="text-2xl font-bold">{campaign.title}</h1>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 capitalize">
-              {campaign.status.replace('_', ' ')}
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusMeta.badgeClassName}`}>
+              {statusMeta.label}
             </span>
 
             {canEditDraft && (
@@ -171,17 +221,6 @@ export default function CampaignDetail() {
               >
                 <Pencil size={12} /> Editar draft
               </Link>
-            )}
-
-            {canEditDraft && (
-              <button
-                onClick={handlePublishCampaign}
-                disabled={publishing}
-                className="inline-flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary-dark transition disabled:opacity-50"
-              >
-                {publishing ? <Loader className="animate-spin" size={12} /> : <Rocket size={12} />}
-                {publishing ? 'Publicando...' : 'Publicar'}
-              </button>
             )}
 
             {canDeletePublished && (
@@ -216,7 +255,7 @@ export default function CampaignDetail() {
       </div>
 
       {/* Applications */}
-      <div>
+      <div id="applications">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Users size={20} /> Aplicaciones ({applications.length})
         </h2>
@@ -329,7 +368,7 @@ export default function CampaignDetail() {
                         </button>
                       </>
                     ) : (
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${STATUS_COLORS[a.status] || 'bg-gray-100'}`}>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${APPLICATION_STATUS_COLORS[a.status] || 'bg-gray-100'}`}>
                         {a.status}
                       </span>
                     )}

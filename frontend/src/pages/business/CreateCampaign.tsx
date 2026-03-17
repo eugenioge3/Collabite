@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/apiError';
 import { getPublishCampaignValidationMessage } from '../../lib/campaignPublish';
+import {
+  getMexicoCitiesByState,
+  getMexicoStateOptions,
+  normalizeMexicoCity,
+  normalizeMexicoLocationSelection,
+  normalizeMexicoState,
+} from '../../lib/mxLocations';
 import type { Niche, Currency } from '../../lib/types';
 import { Loader } from 'lucide-react';
 
@@ -30,9 +37,26 @@ export default function CreateCampaign() {
   const [loading, setLoading] = useState(false);
   const [submitMode, setSubmitMode] = useState<'draft' | 'publish'>('publish');
 
+  const stateOptions = getMexicoStateOptions(form.state);
+  const cityOptions = getMexicoCitiesByState(form.state, form.city);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextState = normalizeMexicoState(e.target.value) || '';
+    setForm((f) => ({
+      ...f,
+      state: nextState,
+      city: f.state === nextState ? f.city : '',
+    }));
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextCity = normalizeMexicoCity(e.target.value) || '';
+    setForm((f) => ({ ...f, city: nextCity }));
   };
 
   const addDeliverable = () => setForm((f) => ({
@@ -71,13 +95,15 @@ export default function CreateCampaign() {
     setLoading(true);
     setSubmitMode(mode);
     try {
+      const location = normalizeMexicoLocationSelection(form.state, form.city);
+
       const payload = {
         title: form.title.trim(),
         description: form.description || null,
         budget: parseFloat(form.budget),
         currency: form.currency,
-        city: form.city.trim() || null,
-        state: form.state || null,
+        city: location.city,
+        state: location.state,
         niche_required: form.niche_required || null,
         min_followers: parseInt(form.min_followers) || 0,
         max_followers: form.max_followers ? parseInt(form.max_followers) : null,
@@ -146,12 +172,34 @@ export default function CreateCampaign() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Estado</label>
+            <select
+              name="state"
+              value={form.state}
+              onChange={handleStateChange}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white"
+            >
+              <option value="">Seleccionar</option>
+              {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Ciudad *</label>
-            <input name="city" value={form.city} onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            <select
+              name="city"
+              value={form.city}
+              onChange={handleCityChange}
+              disabled={!form.state}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white disabled:bg-gray-50"
+            >
+              <option value="">{form.state ? 'Seleccionar' : 'Primero selecciona estado'}</option>
+              {cityOptions.map((city) => <option key={city} value={city}>{city}</option>)}
+            </select>
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Nicho requerido *</label>
             <select name="niche_required" value={form.niche_required} onChange={handleChange}

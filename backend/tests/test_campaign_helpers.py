@@ -5,6 +5,7 @@ from api.campaigns import (
     _business_hint,
     _ensure_publish_requirements,
     _missing_publish_requirements,
+    _normalize_campaign_location_fields,
     _short_text,
     _to_public_campaign_response,
 )
@@ -129,3 +130,22 @@ def test_ensure_publish_requirements_raises_http_400_with_field_list():
     except HTTPException as exc:
         assert exc.status_code == 400
         assert exc.detail == "Completa campos obligatorios para publicar: ciudad, nicho"
+
+
+def test_normalize_campaign_location_fields_canonicalizes_city_alias():
+    normalized = _normalize_campaign_location_fields({
+        "city": "cdmx",
+    })
+
+    assert normalized["city"] == "Ciudad de Mexico"
+    assert normalized["state"] == "Ciudad de Mexico"
+
+
+def test_normalize_campaign_location_fields_keeps_known_state_and_city():
+    normalized = _normalize_campaign_location_fields({
+        "state": "Quintana Roo",
+        "city": "Cancun",
+    })
+
+    assert normalized["state"] == "Quintana Roo"
+    assert normalized["city"] == "Cancun"

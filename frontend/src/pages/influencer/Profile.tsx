@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import type { InfluencerProfile as IProfile, Niche } from '../../lib/types';
+import {
+  getMexicoCitiesByState,
+  getMexicoStateOptions,
+  normalizeMexicoCity,
+  normalizeMexicoLocationSelection,
+  normalizeMexicoState,
+} from '../../lib/mxLocations';
 import { Save, Loader } from 'lucide-react';
 
 const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
@@ -13,14 +20,38 @@ export default function InfluencerProfile() {
 
   useEffect(() => {
     api.get('/influencers/me')
-      .then((r) => setProfile(r.data))
+      .then((r) => {
+        const location = normalizeMexicoLocationSelection(r.data.state, r.data.city);
+        setProfile({
+          ...r.data,
+          state: location.state,
+          city: location.city,
+        });
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
+  const stateOptions = getMexicoStateOptions(profile.state);
+  const cityOptions = getMexicoCitiesByState(profile.state, profile.city);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setProfile((p) => ({ ...p, [name]: value }));
+  };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextState = normalizeMexicoState(e.target.value) || '';
+    setProfile((p) => ({
+      ...p,
+      state: nextState,
+      city: p.state === nextState ? p.city : '',
+    }));
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextCity = normalizeMexicoCity(e.target.value) || '';
+    setProfile((p) => ({ ...p, city: nextCity }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +59,14 @@ export default function InfluencerProfile() {
     setSaving(true);
     setMsg('');
     try {
-      const res = await api.put('/influencers/me', profile);
+      const location = normalizeMexicoLocationSelection(profile.state, profile.city);
+      const payload = {
+        ...profile,
+        state: location.state,
+        city: location.city,
+      };
+
+      const res = await api.put('/influencers/me', payload);
       setProfile(res.data);
       setMsg('Perfil actualizado');
     } catch {
@@ -57,12 +95,25 @@ export default function InfluencerProfile() {
           <textarea name="bio" value={profile.bio || ''} onChange={handleChange} rows={3}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Estado</label>
+            <select name="state" value={profile.state || ''} onChange={handleStateChange}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
+              <option value="">Seleccionar</option>
+              {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Ciudad</label>
-            <input name="city" value={profile.city || ''} onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            <select name="city" value={profile.city || ''} onChange={handleCityChange} disabled={!profile.state}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white disabled:bg-gray-50">
+              <option value="">{profile.state ? 'Seleccionar' : 'Primero selecciona estado'}</option>
+              {cityOptions.map((city) => <option key={city} value={city}>{city}</option>)}
+            </select>
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Nicho</label>
             <select name="niche" value={profile.niche || ''} onChange={handleChange}

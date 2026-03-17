@@ -1,4 +1,5 @@
 import type { BusinessCategory, BusinessProfile } from './types';
+import { normalizeMexicoLocationSelection } from './mxLocations';
 
 export type BusinessProfileForm = {
   business_name: string;
@@ -37,13 +38,15 @@ export function createBusinessProfileForm(
   profile?: Partial<BusinessProfile>,
   email?: string | null,
 ): BusinessProfileForm {
+  const location = normalizeMexicoLocationSelection(profile?.state, profile?.city);
+
   return {
     business_name: isPlaceholderBusinessName(profile?.business_name, email)
       ? ''
       : profile?.business_name ?? '',
     category: profile?.category ?? '',
-    city: profile?.city ?? '',
-    state: profile?.state ?? '',
+    city: location.city ?? '',
+    state: location.state ?? '',
     country: profile?.country ?? 'Mexico',
     google_maps_url: profile?.google_maps_url ?? '',
     description: profile?.description ?? '',
@@ -58,7 +61,7 @@ export function getBusinessProfileFieldErrors(
 ) {
   const errors: Partial<Record<keyof BusinessProfileForm, string>> = {};
   const businessName = form.business_name.trim();
-  const city = form.city.trim();
+  const city = normalizeMexicoLocationSelection(form.state, form.city).city ?? '';
   const localPart = getEmailLocalPart(email);
   const googleMapsUrl = form.google_maps_url.trim();
 
@@ -118,11 +121,13 @@ export function isBusinessProfileReady(
 }
 
 export function getBusinessProfileUpdatePayload(form: BusinessProfileForm) {
+  const location = normalizeMexicoLocationSelection(form.state, form.city);
+
   return {
     business_name: form.business_name.trim(),
     category: form.category || null,
-    city: form.city.trim() || null,
-    state: form.state.trim() || null,
+    city: location.city,
+    state: location.state,
     country: form.country.trim() || null,
     google_maps_url: form.google_maps_url.trim() || null,
     description: form.description.trim() || null,

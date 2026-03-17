@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/api';
 import type { Campaign, BusinessProfile } from '../../lib/types';
 import { isBusinessProfileReady } from '../../lib/businessProfile';
+import { getCampaignStatusMeta } from '../../lib/campaignStatus';
 import { PlusCircle, Users, Briefcase } from 'lucide-react';
 
 export default function BusinessDashboard() {
@@ -87,17 +88,25 @@ export default function BusinessDashboard() {
           <p className="text-gray-400 text-sm">No tienes campañas aún. ¡Crea tu primera!</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {campaigns.slice(0, 6).map((c) => (
-              <Link key={c.id} to={`/dashboard/business/campaigns/${c.id}`}
-                className="bg-white border rounded-lg p-4 hover:border-primary transition">
-                <h3 className="font-semibold mb-1 truncate">{c.title}</h3>
-                <p className="text-sm text-gray-500 mb-2 line-clamp-2">{c.description}</p>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{c.status}</span>
-                  <span className="font-semibold text-primary">${c.budget} {c.currency}</span>
-                </div>
-              </Link>
-            ))}
+            {campaigns.slice(0, 6).map((c) => {
+              const statusMeta = getCampaignStatusMeta(c.status);
+
+              return (
+                <Link
+                  key={c.id}
+                  to={`/dashboard/business/campaigns/${c.id}`}
+                  className="bg-white border rounded-lg p-4 hover:border-primary transition"
+                >
+                  <h3 className="font-semibold mb-1 truncate">{c.title}</h3>
+                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">{c.description}</p>
+                  <div className="flex items-center justify-between text-xs gap-2">
+                    <span className={`px-2 py-0.5 rounded-full ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
+                    <span className="font-semibold text-primary">${c.budget} {c.currency}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 line-clamp-2">{statusMeta.nextStep}</p>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

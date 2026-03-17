@@ -20,6 +20,17 @@ def test_normalize_business_updates_trims_strings_and_handles():
     assert normalized["description"] == "Mariscos frente al mar"
 
 
+def test_normalize_business_updates_infers_state_from_city_alias():
+    payload = {
+        "city": "CDMX",
+    }
+
+    normalized = _normalize_business_updates(payload)
+
+    assert normalized["city"] == "Ciudad de Mexico"
+    assert normalized["state"] == "Ciudad de Mexico"
+
+
 def test_missing_required_profile_fields_flags_placeholder_name():
     user = User(email="demo.business@example.com", role=UserRole.business, cognito_sub="abc")
     profile = BusinessProfile(

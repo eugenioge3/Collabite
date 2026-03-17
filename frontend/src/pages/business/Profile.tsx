@@ -12,6 +12,12 @@ import {
   getBusinessProfileUpdatePayload,
   isBusinessProfileReady,
 } from '../../lib/businessProfile';
+import {
+  getMexicoCitiesByState,
+  getMexicoStateOptions,
+  normalizeMexicoCity,
+  normalizeMexicoState,
+} from '../../lib/mxLocations';
 import { Save, Loader, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const CATEGORIES: BusinessCategory[] = ['restaurant', 'bar', 'hotel', 'cafe'];
@@ -34,10 +40,31 @@ export default function BusinessProfile() {
       .finally(() => setLoading(false));
   }, [user?.email]);
 
+  const stateOptions = getMexicoStateOptions(form.state);
+  const cityOptions = getMexicoCitiesByState(form.state, form.city);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: undefined }));
+    setMessage(null);
+  };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextState = normalizeMexicoState(e.target.value) || '';
+    setForm((current) => ({
+      ...current,
+      state: nextState,
+      city: current.state === nextState ? current.city : '',
+    }));
+    setErrors((current) => ({ ...current, city: undefined }));
+    setMessage(null);
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextCity = normalizeMexicoCity(e.target.value) || '';
+    setForm((current) => ({ ...current, city: nextCity }));
+    setErrors((current) => ({ ...current, city: undefined }));
     setMessage(null);
   };
 
@@ -141,7 +168,7 @@ export default function BusinessProfile() {
             {errors.business_name && <p className="mt-1 text-sm text-red-600">{errors.business_name}</p>}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="block text-sm font-medium mb-1">Categoria *</label>
               <select
@@ -161,14 +188,34 @@ export default function BusinessProfile() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-1">Estado</label>
+              <select
+                name="state"
+                value={form.state}
+                onChange={handleStateChange}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white"
+              >
+                <option value="">Seleccionar</option>
+                {stateOptions.map((state) => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium mb-1">Ciudad *</label>
-              <input
+              <select
                 name="city"
                 value={form.city}
-                onChange={handleChange}
-                placeholder="Ej. Cancun"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none ${errors.city ? 'border-red-300' : ''}`}
-              />
+                onChange={handleCityChange}
+                disabled={!form.state}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white disabled:bg-gray-50 ${errors.city ? 'border-red-300' : ''}`}
+              >
+                <option value="">{form.state ? 'Seleccionar' : 'Primero selecciona estado'}</option>
+                {cityOptions.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
               {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
             </div>
           </div>
@@ -202,16 +249,6 @@ export default function BusinessProfile() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Estado</label>
-                  <input
-                    name="state"
-                    value={form.state}
-                    onChange={handleChange}
-                    placeholder="Ej. Quintana Roo"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Pais</label>
                   <input
