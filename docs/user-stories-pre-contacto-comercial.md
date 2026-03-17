@@ -389,7 +389,7 @@ Las historias Manual/Documento/Proceso no estan aqui; siguen en sus fases corres
 |--------|-------------------------------------------------|----------|--------|
 | US-021 | Auth: registro/login sin errores en produccion  | M        | ✅ Completa  |
 | US-001 | Perfil de negocio completo en menos de 3 min    | M        | ✅ Completa  |
-| US-002 | Crear y publicar campana online sin friccion     | M        | ⬜ Pendiente |
+| US-002 | Crear y publicar campana online sin friccion     | M        | ✅ Completa  |
 | US-003 | Estado de campana visible (draft/activa/fondead) | S        | ⬜ Pendiente |
 | US-004 | Resumen de costo total antes de pagar           | S        | ⬜ Pendiente |
 | US-005 | Ver conteo de candidatas ocultas antes de pagar | M        | ⬜ Pendiente |

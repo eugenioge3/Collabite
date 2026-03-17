@@ -1,7 +1,14 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from api.campaigns import _business_hint, _short_text, _to_public_campaign_response
+from api.campaigns import (
+    _business_hint,
+    _ensure_publish_requirements,
+    _missing_publish_requirements,
+    _short_text,
+    _to_public_campaign_response,
+)
+from fastapi import HTTPException
 from models.models import BusinessCategory, BusinessProfile, Campaign, CampaignStatus, Currency
 
 
@@ -86,3 +93,39 @@ def test_to_public_campaign_response_maps_fields_and_defaults_lists():
     assert response.includes == []
     assert response.budget == 999.99
     assert response.status == CampaignStatus.active
+
+
+def test_missing_publish_requirements_reports_city_and_niche_when_absent():
+    missing = _missing_publish_requirements(
+        title="Campana demo",
+        budget=1500,
+        city="   ",
+        niche_required=None,
+    )
+
+    assert missing == ["ciudad", "nicho"]
+
+
+def test_missing_publish_requirements_reports_title_and_budget_when_invalid():
+    missing = _missing_publish_requirements(
+        title="",
+        budget=0,
+        city="Cancun",
+        niche_required=None,
+    )
+
+    assert missing == ["titulo", "presupuesto", "nicho"]
+
+
+def test_ensure_publish_requirements_raises_http_400_with_field_list():
+    try:
+        _ensure_publish_requirements(
+            title="Campana demo",
+            budget=1500,
+            city=None,
+            niche_required=None,
+        )
+        raise AssertionError("Expected HTTPException was not raised")
+    except HTTPException as exc:
+        assert exc.status_code == 400
+        assert exc.detail == "Completa campos obligatorios para publicar: ciudad, nicho"

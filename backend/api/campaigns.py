@@ -34,6 +34,45 @@ _CATEGORY_HINT = {
 }
 
 
+def _missing_publish_requirements(
+    *,
+    title: str | None,
+    budget: float | int | None,
+    city: str | None,
+    niche_required: Niche | None,
+) -> list[str]:
+    missing = []
+
+    if not title or len(title.strip()) < 3:
+        missing.append("titulo")
+
+    if budget is None or float(budget) <= 0:
+        missing.append("presupuesto")
+
+    if not city or not city.strip():
+        missing.append("ciudad")
+
+    if niche_required is None:
+        missing.append("nicho")
+
+    return missing
+
+
+def _ensure_publish_requirements(*, title: str | None, budget: float | int | None, city: str | None, niche_required: Niche | None):
+    missing = _missing_publish_requirements(
+        title=title,
+        budget=budget,
+        city=city,
+        niche_required=niche_required,
+    )
+
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail="Completa campos obligatorios para publicar: " + ", ".join(missing),
+        )
+
+
 def _short_text(value: str | None, max_words: int = 8, max_chars: int = 70) -> str:
     if not value:
         return ""
@@ -98,6 +137,14 @@ def create_campaign(
     user = db.query(User).filter(User.cognito_sub == cognito_sub).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if body.publish_now:
+        _ensure_publish_requirements(
+            title=body.title,
+            budget=body.budget,
+            city=body.city,
+            niche_required=body.niche_required,
+        )
 
     campaign_data = body.model_dump(exclude={"publish_now"})
 
@@ -226,6 +273,13 @@ def publish_campaign(
 
     if campaign.status in (CampaignStatus.canceled, CampaignStatus.completed):
         raise HTTPException(status_code=400, detail="Campaign cannot be published")
+
+    _ensure_publish_requirements(
+        title=campaign.title,
+        budget=float(campaign.budget) if campaign.budget is not None else None,
+        city=campaign.city,
+        niche_required=campaign.niche_required,
+    )
 
     campaign.status = CampaignStatus.active
     db.commit()

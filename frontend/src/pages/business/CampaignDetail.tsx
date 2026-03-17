@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/apiError';
 import type { Campaign, Application } from '../../lib/types';
@@ -26,9 +26,15 @@ const STATUS_COLORS: Record<string, string> = {
   disputed: 'bg-orange-100 text-orange-800',
 };
 
+type CampaignDetailLocationState = {
+  notice?: string;
+};
+
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialNotice = ((location.state ?? null) as CampaignDetailLocationState | null)?.notice ?? '';
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +43,7 @@ export default function CampaignDetail() {
   const [paying, setPaying] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState(initialNotice);
 
   const loadData = async () => {
     if (!id) return;
@@ -92,6 +99,7 @@ export default function CampaignDetail() {
     try {
       const res = await api.post(`/campaigns/${id}/publish`);
       setCampaign(res.data);
+      setNotice('Campaña publicada correctamente. Ya está visible para influencers.');
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'No se pudo publicar la campaña'));
     }
@@ -141,6 +149,12 @@ export default function CampaignDetail() {
       <Link to="/dashboard/business/campaigns" className="inline-flex items-center gap-1 text-gray-500 hover:text-primary mb-4 text-sm">
         <ArrowLeft size={16} /> Volver a mis campañas
       </Link>
+
+      {notice && (
+        <div className="bg-green-50 text-green-700 border border-green-200 rounded-lg px-4 py-3 text-sm mb-4">
+          {notice}
+        </div>
+      )}
 
       <div className="bg-white border rounded-lg p-6 mb-6">
         <div className="flex items-start justify-between mb-4">

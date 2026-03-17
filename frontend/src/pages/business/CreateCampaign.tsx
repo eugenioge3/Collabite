@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/apiError';
+import { getPublishCampaignValidationMessage } from '../../lib/campaignPublish';
 import type { Niche, Currency } from '../../lib/types';
 import { Loader } from 'lucide-react';
 
@@ -52,15 +53,30 @@ export default function CreateCampaign() {
 
   const submitCampaign = async (mode: 'draft' | 'publish' = 'publish') => {
     setError('');
+
+    if (mode === 'publish') {
+      const validationMessage = getPublishCampaignValidationMessage({
+        title: form.title,
+        budget: form.budget,
+        city: form.city,
+        niche_required: form.niche_required,
+      });
+
+      if (validationMessage) {
+        setError(validationMessage);
+        return;
+      }
+    }
+
     setLoading(true);
     setSubmitMode(mode);
     try {
       const payload = {
-        title: form.title,
+        title: form.title.trim(),
         description: form.description || null,
         budget: parseFloat(form.budget),
         currency: form.currency,
-        city: form.city || null,
+        city: form.city.trim() || null,
         state: form.state || null,
         niche_required: form.niche_required || null,
         min_followers: parseInt(form.min_followers) || 0,
@@ -72,7 +88,13 @@ export default function CreateCampaign() {
         publish_now: mode === 'publish',
       };
       const res = await api.post('/campaigns', payload);
-      navigate(`/dashboard/business/campaigns/${res.data.id}`);
+      navigate(`/dashboard/business/campaigns/${res.data.id}`, {
+        state: {
+          notice: mode === 'publish'
+            ? 'Campaña publicada correctamente. Ya está visible para influencers.'
+            : 'Borrador guardado. Cuando quieras, entra y publica la campaña.',
+        },
+      });
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Error al crear campaña'));
     } finally {
@@ -88,6 +110,10 @@ export default function CreateCampaign() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Nueva campaña</h1>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 mb-4">
+        Flujo recomendado: 1) guarda borrador, 2) publica cuando tengas título, presupuesto, ciudad y nicho.
+      </div>
 
       {error && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
 
@@ -122,12 +148,12 @@ export default function CreateCampaign() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Ciudad</label>
+            <label className="block text-sm font-medium mb-1">Ciudad *</label>
             <input name="city" value={form.city} onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Nicho requerido</label>
+            <label className="block text-sm font-medium mb-1">Nicho requerido *</label>
             <select name="niche_required" value={form.niche_required} onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
               <option value="">Cualquiera</option>
