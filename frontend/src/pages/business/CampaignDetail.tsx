@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/apiError';
 import { getCampaignStatusMeta } from '../../lib/campaignStatus';
+import { getCampaignPaymentSummary } from '../../lib/campaignPayment';
 import type { Campaign, Application } from '../../lib/types';
 import {
   ArrowLeft,
@@ -142,6 +143,16 @@ export default function CampaignDetail() {
   if (!campaign) return <div className="text-center py-20 text-gray-400">Campaña no encontrada</div>;
 
   const statusMeta = getCampaignStatusMeta(campaign.status);
+  const paymentSummary = getCampaignPaymentSummary({
+    budget: campaign.budget,
+    currency: campaign.currency,
+  });
+  const formatMoney = (amount: number) => new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: campaign.currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
   const canEditDraft = campaign.status === 'draft';
   const canDeletePublished = campaign.status === 'active' || campaign.status === 'funded';
   const canPublishDraft = statusMeta.primaryAction === 'publish';
@@ -181,14 +192,12 @@ export default function CampaignDetail() {
           )}
 
           {canFundCampaign && (
-            <button
-              onClick={handleFundEscrow}
-              disabled={paying}
-              className="inline-flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-50"
+            <a
+              href="#payment-summary"
+              className="inline-flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition"
             >
-              {paying ? <Loader className="animate-spin" size={14} /> : <CreditCard size={14} />}
-              {paying ? 'Procesando pago...' : statusMeta.ctaLabel}
-            </button>
+              <CreditCard size={14} /> Ver total y pagar
+            </a>
           )}
 
           {canReviewApplicants && (
@@ -267,19 +276,47 @@ export default function CampaignDetail() {
         )}
 
         {needsPaymentToReview ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
+          <div id="payment-summary" className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900 mb-4 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
               <p className="font-semibold">{applications.length} influencers aplicaron</p>
               <p className="text-amber-800">Puedes ver previsualizaciones anonimas. Paga para desbloquear identidad y gestionar candidatos.</p>
+              </div>
+              <button
+                onClick={handleFundEscrow}
+                disabled={paying || campaign.status === 'draft'}
+                className="inline-flex items-center justify-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-50"
+              >
+                {paying ? <Loader className="animate-spin" size={14} /> : <CreditCard size={14} />}
+                {paying ? 'Procesando pago...' : 'Pagar y desbloquear'}
+              </button>
             </div>
-            <button
-              onClick={handleFundEscrow}
-              disabled={paying || campaign.status === 'draft'}
-              className="inline-flex items-center justify-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-50"
-            >
-              {paying ? <Loader className="animate-spin" size={14} /> : <CreditCard size={14} />}
-              {paying ? 'Procesando pago...' : 'Pagar y desbloquear'}
-            </button>
+
+            <div className="bg-white border border-amber-200 rounded-lg px-3 py-3 text-sm text-amber-900">
+              <p className="font-semibold mb-2">Resumen antes de pagar</p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span>Presupuesto base</span>
+                  <strong>{formatMoney(paymentSummary.budget)}</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Comision Collabite ({Math.round(paymentSummary.commissionRate * 100)}%)</span>
+                  <strong>{formatMoney(paymentSummary.commission)}</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Fee de pago ({(paymentSummary.paymentFeeRate * 100).toFixed(1)}% + {formatMoney(paymentSummary.paymentFeeFixed)})</span>
+                  <strong>{formatMoney(paymentSummary.paymentFee)}</strong>
+                </div>
+                <div className="h-px bg-amber-200 my-1" />
+                <div className="flex items-center justify-between text-base">
+                  <span className="font-semibold">Total a pagar hoy</span>
+                  <strong>{formatMoney(paymentSummary.total)}</strong>
+                </div>
+              </div>
+              <p className="text-xs text-amber-800 mt-2">
+                Transparencia de fee: la comision cubre uso de plataforma y el fee de pago corresponde al procesamiento seguro del cobro.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 mb-4">

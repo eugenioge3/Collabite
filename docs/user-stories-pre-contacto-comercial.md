@@ -391,7 +391,7 @@ Las historias Manual/Documento/Proceso no estan aqui; siguen en sus fases corres
 | US-001 | Perfil de negocio completo en menos de 3 min    | M        | ✅ Completa  |
 | US-002 | Crear y publicar campana online sin friccion     | M        | ✅ Completa  |
 | US-003 | Estado de campana visible (draft/activa/fondeada) | S        | ✅ Completa  |
-| US-004 | Resumen de costo total antes de pagar           | S        | ⬜ Pendiente |
+| US-004 | Resumen de costo total antes de pagar           | S        | ✅ Completa  |
 | US-005 | Ver conteo de candidatas ocultas antes de pagar | M        | ⬜ Pendiente |
 | US-006 | Desbloquear perfiles pagando                    | M        | ⬜ Pendiente |
 | US-012 | Landing con propuesta de valor local y CTA      | S        | ⬜ Pendiente |
