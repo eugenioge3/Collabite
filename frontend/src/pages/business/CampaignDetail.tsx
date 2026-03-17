@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../../lib/apiError';
 import { getCampaignStatusMeta } from '../../lib/campaignStatus';
 import { getCampaignPaymentSummary } from '../../lib/campaignPayment';
 import type { Campaign, Application } from '../../lib/types';
+import SupportChannelsCard from '../../components/ui/SupportChannelsCard';
 import {
   ArrowLeft,
   Users,
@@ -317,6 +318,11 @@ export default function CampaignDetail() {
                 Transparencia de fee: la comision cubre uso de plataforma y el fee de pago corresponde al procesamiento seguro del cobro.
               </p>
             </div>
+
+            <SupportChannelsCard
+              title="Soporte antes de pagar y desbloquear"
+              description="Si necesitas confirmar montos, proceso de escrow o desbloqueo, escribenos por correo y respondemos rapido para que avances con confianza."
+            />
           </div>
         ) : (
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 mb-4">

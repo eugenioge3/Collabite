@@ -12,6 +12,7 @@ import {
 } from '../../lib/mxLocations';
 import type { Niche, Currency } from '../../lib/types';
 import { Loader } from 'lucide-react';
+import SupportChannelsCard from '../../components/ui/SupportChannelsCard';
 
 const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
 const CURRENCIES: Currency[] = ['MXN', 'USD'];
@@ -264,6 +265,11 @@ export default function CreateCampaign() {
             {loading && submitMode === 'publish' ? 'Publicando...' : 'Publicar campaña'}
           </button>
         </div>
+
+        <SupportChannelsCard
+          title="Soporte durante la publicación"
+          description="Si tienes dudas de validaciones o de como publicar, escribenos por correo y te acompanamos para que tu campana salga hoy mismo."
+        />
       </form>
     </div>
   );

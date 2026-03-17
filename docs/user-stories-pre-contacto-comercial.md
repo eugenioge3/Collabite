@@ -18,7 +18,7 @@ Separar estas 3 decisiones evita confusion:
 
 Regla practica de trabajo:
 - Lo core si debe estar productizado antes de recibir trafico.
-- Lo no core puede operar manualmente durante 4-6 semanas con Notion, Sheets, WhatsApp y seguimiento humano.
+- Lo no core puede operar manualmente durante 4-6 semanas con Notion, Sheets, correo y seguimiento humano.
 - Cada feature nueva debe competir contra una pregunta simple: mejora conversion real o solo agrega complejidad.
 
 ## 3) Capacidades ya avanzadas en el producto actual
@@ -42,10 +42,10 @@ Implicacion practica:
 2. GitHub Projects: tablero unico de ejecucion.
 3. Notion (free): playbook comercial, scripts y FAQ interna.
 4. Google Sheets (free): corte semanal de KPIs y variable.
-5. WhatsApp Business: soporte rapido y seguimiento manual en piloto.
+5. Correo de soporte: seguimiento manual con trazabilidad durante piloto.
 
 ## Recomendacion practica
-Usar GitHub como fuente unica para backlog y estado. Usar Notion/Sheets/WhatsApp para operar lo que todavia no vale la pena automatizar.
+Usar GitHub como fuente unica para backlog y estado. Usar Notion/Sheets/correo para operar lo que todavia no vale la pena automatizar.
 
 ## 5) Estructura del tablero (GitHub Projects)
 Columnas sugeridas:
@@ -213,9 +213,11 @@ Criterios de aceptacion:
 ### US-022 (P0, S, Owner: Shared, Modo inicial: Manual)
 Como negocio, quiero ver un canal de soporte visible en puntos criticos, para no abandonar el flujo cuando tenga dudas.
 Criterios de aceptacion:
-- Boton o enlace de WhatsApp/correo visible en registro, publicacion y pago.
+- Boton o enlace de correo visible en registro, publicacion y pago.
 - Tiempo objetivo de respuesta definido.
 - Responsable de soporte asignado durante piloto.
+- Chatbot con AI considerado como mejora futura, fuera del alcance actual.
+Estado actual: ✅ Completa.
 
 ### US-015 (P0, S, Owner: Fundador, Modo inicial: Producto)
 Como equipo, queremos logs minimos de eventos clave, para diagnosticar fallas de conversion.
@@ -258,7 +260,7 @@ Criterios de aceptacion:
 - Reporte semanal de top 3 motivos.
 
 ### US-014 (P1, S, Owner: Shared, Modo inicial: Manual)
-Como equipo, queremos un proceso de seguimiento rapido por WhatsApp o correo, para que ninguna oportunidad se enfrie por falta de respuesta.
+Como equipo, queremos un proceso de seguimiento rapido por correo, para que ninguna oportunidad se enfrie por falta de respuesta.
 Criterios de aceptacion:
 - SLA objetivo de seguimiento definido.
 - Plantillas de respuesta rapida disponibles.

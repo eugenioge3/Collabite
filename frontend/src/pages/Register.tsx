@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
 import { translateRegisterError } from '../lib/authMessages';
 import { Building2, User, Eye, EyeOff, Check, X } from 'lucide-react';
+import SupportChannelsCard from '../components/ui/SupportChannelsCard';
 
 const passwordRules = [
   { label: 'Mínimo 8 caracteres', test: (p: string) => p.length >= 8 },
@@ -182,6 +183,12 @@ export default function Register() {
             Inicia sesión
           </Link>
         </p>
+
+        <SupportChannelsCard
+          className="mt-6"
+          title="Soporte para completar tu registro"
+          description="Si algo falla al crear tu cuenta, escribenos por correo y te ayudamos para que no pierdas el flujo."
+        />
       </div>
     </div>
   );
