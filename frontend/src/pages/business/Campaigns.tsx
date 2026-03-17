@@ -88,6 +88,10 @@ export default function BusinessCampaigns() {
         <div className="space-y-3">
           {visibleCampaigns.map((c) => {
             const statusMeta = getCampaignStatusMeta(c.status);
+            const applicationsCount = c.applications_count ?? 0;
+            const hasApplicants = applicationsCount > 0;
+            const needsUnlock = hasApplicants && !c.escrow_funded && c.status !== 'draft';
+            const applicantsLabel = `${applicationsCount} candidata${applicationsCount === 1 ? '' : 's'} aplicaron`;
 
             return (
               <Link
@@ -111,6 +115,11 @@ export default function BusinessCampaigns() {
                 <div className="mt-3 text-xs font-semibold text-primary">
                   {statusMeta.ctaLabel}
                 </div>
+                {hasApplicants && (
+                  <p className={`mt-1 text-xs ${needsUnlock ? 'text-amber-700' : 'text-gray-600'}`}>
+                    {needsUnlock ? `${applicantsLabel} · paga para desbloquear` : applicantsLabel}
+                  </p>
+                )}
               </Link>
             );
           })}

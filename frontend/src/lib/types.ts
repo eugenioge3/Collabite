@@ -129,6 +129,7 @@ export interface Campaign {
   includes: string[];
   status: CampaignStatus;
   escrow_funded: boolean;
+  applications_count?: number;
   deadline: string | null;
   max_applicants: number | null;
   created_at: string;

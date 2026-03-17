@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from api.campaigns import (
     _business_hint,
+    _campaign_application_count_map,
     _ensure_publish_requirements,
     _missing_publish_requirements,
     _normalize_campaign_location_fields,
@@ -160,3 +161,16 @@ def test_normalize_campaign_search_filters_canonicalizes_city_and_state_aliases(
 
     assert city_filter == "Ciudad de Mexico"
     assert state_filter == "Ciudad de Mexico"
+
+
+def test_campaign_application_count_map_casts_values_to_int():
+    first_campaign_id = uuid4()
+    second_campaign_id = uuid4()
+
+    mapped = _campaign_application_count_map([
+        (first_campaign_id, 3),
+        (second_campaign_id, 0),
+    ])
+
+    assert mapped[first_campaign_id] == 3
+    assert mapped[second_campaign_id] == 0

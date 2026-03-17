@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.auth import get_optional_current_user, require_role
@@ -105,6 +106,31 @@ def _normalize_campaign_search_filters(
     return normalize_mexico_city(city), normalize_mexico_state(state)
 
 
+def _campaign_application_count_map(rows: list[tuple[UUID, int]]) -> dict[UUID, int]:
+    return {campaign_id: int(total or 0) for campaign_id, total in rows}
+
+
+def _get_campaign_application_counts(db: Session, campaign_ids: list[UUID]) -> dict[UUID, int]:
+    if not campaign_ids:
+        return {}
+
+    rows = db.query(
+        CampaignApplication.campaign_id,
+        func.count(CampaignApplication.id),
+    ).filter(
+        CampaignApplication.campaign_id.in_(campaign_ids),
+        CampaignApplication.is_deleted == False,
+    ).group_by(CampaignApplication.campaign_id).all()
+
+    return _campaign_application_count_map(rows)
+
+
+def _attach_application_counts(campaigns: list[Campaign], application_counts: dict[UUID, int]) -> list[Campaign]:
+    for campaign in campaigns:
+        setattr(campaign, "applications_count", application_counts.get(campaign.id, 0))
+    return campaigns
+
+
 def _short_text(value: str | None, max_words: int = 8, max_chars: int = 70) -> str:
     if not value:
         return ""
@@ -203,10 +229,13 @@ def list_my_campaigns(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return db.query(Campaign).filter(
+    campaigns = db.query(Campaign).filter(
         Campaign.business_user_id == user.id,
         Campaign.is_deleted == False,
     ).order_by(Campaign.created_at.desc()).all()
+
+    application_counts = _get_campaign_application_counts(db, [campaign.id for campaign in campaigns])
+    return _attach_application_counts(campaigns, application_counts)
 
 
 @router.get("", response_model=list[CampaignPublicResponse])
@@ -286,6 +315,9 @@ def get_campaign(campaign_id: UUID, db: Session = Depends(get_db)):
 
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
+
+    application_counts = _get_campaign_application_counts(db, [campaign.id])
+    setattr(campaign, "applications_count", application_counts.get(campaign.id, 0))
 
     return campaign
 

@@ -90,6 +90,10 @@ export default function BusinessDashboard() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {campaigns.slice(0, 6).map((c) => {
               const statusMeta = getCampaignStatusMeta(c.status);
+              const applicationsCount = c.applications_count ?? 0;
+              const hasApplicants = applicationsCount > 0;
+              const needsUnlock = hasApplicants && !c.escrow_funded && c.status !== 'draft';
+              const applicantsLabel = `${applicationsCount} candidata${applicationsCount === 1 ? '' : 's'} aplicaron`;
 
               return (
                 <Link
@@ -103,6 +107,11 @@ export default function BusinessDashboard() {
                     <span className={`px-2 py-0.5 rounded-full ${statusMeta.badgeClassName}`}>{statusMeta.label}</span>
                     <span className="font-semibold text-primary">${c.budget} {c.currency}</span>
                   </div>
+                  {hasApplicants && (
+                    <p className={`text-xs mt-2 ${needsUnlock ? 'text-amber-700' : 'text-gray-600'}`}>
+                      {needsUnlock ? `${applicantsLabel} · paga para desbloquear` : applicantsLabel}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 mt-2 line-clamp-2">{statusMeta.nextStep}</p>
                 </Link>
               );

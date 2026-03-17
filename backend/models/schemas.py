@@ -225,6 +225,7 @@ class CampaignResponse(BaseModel):
     includes: list = []
     status: CampaignStatus
     escrow_funded: bool
+    applications_count: int = 0
     deadline: Optional[date] = None
     max_applicants: Optional[int] = None
     created_at: datetime
