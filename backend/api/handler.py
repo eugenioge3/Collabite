@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from mangum import Mangum
+from sqlalchemy import text
 from core.config import get_settings
+from core.database import get_engine
 from api.auth import router as auth_router
 from api.influencers import router as influencers_router
 from api.businesses import router as businesses_router
@@ -37,9 +40,43 @@ app.include_router(applications_router, prefix="/api/applications", tags=["Appli
 app.include_router(verification_router, prefix="/api/verify", tags=["Verification"])
 
 
+def _check_database_health():
+    try:
+        with get_engine().connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception:
+        return {
+            "status": "error",
+            "error": "database_unreachable",
+        }
+
+
+def _build_health_payload():
+    db_health = _check_database_health()
+
+    checks = {
+        "api": "ok",
+        "database": db_health["status"],
+    }
+
+    payload = {
+        "status": "ok" if db_health["status"] == "ok" else "degraded",
+        "environment": settings.environment,
+        "checks": checks,
+    }
+
+    if db_health["status"] != "ok":
+        payload["checks"]["database_error"] = db_health.get("error", "unknown")
+        return 503, payload
+
+    return 200, payload
+
+
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "environment": settings.environment}
+    status_code, payload = _build_health_payload()
+    return JSONResponse(status_code=status_code, content=payload)
 
 
 # Lambda handler

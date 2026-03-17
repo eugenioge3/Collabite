@@ -180,7 +180,41 @@ make smoke
 
 Nota: por ahora este gate es manual. Mas adelante lo podemos llevar a GitHub Actions o a una ejecucion diaria programada.
 
-### 9. Release Readiness y Rollback
+### 9. Health Check y alerta basica
+
+Health endpoint (backend):
+
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+
+Chequeo manual rapido:
+
+```bash
+make health-check
+```
+
+Monitoreo manual continuo (sin scheduling):
+
+```bash
+make health-watch
+```
+
+Opciones utiles:
+
+```bash
+make health-check HEALTH_URL=https://<API_DOMAIN>/api/health
+make health-watch HEALTH_URL=https://<API_DOMAIN>/api/health HEALTH_INTERVAL=60 MAX_FAILURES=2
+```
+
+Alerta basica opcional por webhook/comando:
+
+```bash
+ALERT_WEBHOOK=https://hooks.example.com/... make health-check
+ALERT_COMMAND='echo "api down"' make health-check
+```
+
+### 10. Release Readiness y Rollback
 
 Antes de desplegar a un ambiente online, corre:
 
@@ -214,7 +248,7 @@ git checkout -
 Post-deploy minimo:
 
 ```bash
-curl https://<API_DOMAIN>/api/health
+make health-check HEALTH_URL=https://<API_DOMAIN>/api/health
 ```
 
 ## Remote Deploy

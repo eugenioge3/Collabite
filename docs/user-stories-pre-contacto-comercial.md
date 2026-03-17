@@ -397,7 +397,7 @@ Las historias Manual/Documento/Proceso no estan aqui; siguen en sus fases corres
 | US-012 | Landing con propuesta de valor local y CTA      | S        | ⬜ Pendiente |
 | US-013 | FAQ con dudas de pago y seguridad               | S        | ⬜ Pendiente |
 | US-015 | Logs minimos de eventos clave de conversion     | S        | ⬜ Pendiente |
-| US-016 | Health check y alerta basica de caida           | S        | ⬜ Pendiente |
+| US-016 | Health check y alerta basica de caida           | S        | ✅ Completa  |
 
 ### Prioridad 2 — Para demo estable antes de contactarla (Gate A)
 

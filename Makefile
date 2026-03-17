@@ -1,6 +1,9 @@
-.PHONY: dev backend frontend migrate install help lint test test-backend test-frontend smoke qa release-check release-check-local
+.PHONY: dev backend frontend migrate install help lint test test-backend test-frontend smoke health-check health-watch qa release-check release-check-local
 
 ENV ?= dev
+HEALTH_URL ?= http://127.0.0.1:8000/api/health
+HEALTH_INTERVAL ?= 60
+MAX_FAILURES ?= 1
 
 # Default target
 help:
@@ -13,6 +16,8 @@ help:
 	@echo "  make lint      Corre lint del frontend"
 	@echo "  make test      Corre tests unitarios de backend y frontend"
 	@echo "  make smoke     Corre smoke test local del stack"
+	@echo "  make health-check       Verifica /api/health una vez"
+	@echo "  make health-watch       Monitorea /api/health continuamente"
 	@echo "  make qa        Corre gate manual: tests + build + smoke"
 	@echo "  make release-check       Gate de salida a produccion (local + remoto)"
 	@echo "  make release-check-local Gate de salida solo local"
@@ -58,6 +63,12 @@ test-frontend:
 
 smoke:
 	@bash scripts/smoke-local.sh
+
+health-check:
+	@HEALTH_URL="$(HEALTH_URL)" bash scripts/health-alert.sh once
+
+health-watch:
+	@HEALTH_URL="$(HEALTH_URL)" INTERVAL_SECONDS="$(HEALTH_INTERVAL)" MAX_FAILURES="$(MAX_FAILURES)" bash scripts/health-alert.sh watch
 
 qa: lint test
 	@echo "→ Frontend build"
