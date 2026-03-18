@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
+import {
+  getMexicoCitiesByState,
+  getMexicoStateOptions,
+  normalizeMexicoCity,
+  normalizeMexicoState,
+} from '../lib/mxLocations';
 import type { CampaignPublic, Niche } from '../lib/types';
 import { Search, MapPin, DollarSign, CheckCircle, Store } from 'lucide-react';
 
@@ -9,22 +15,63 @@ const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
 export default function CampaignsPublic() {
   const [campaigns, setCampaigns] = useState<CampaignPublic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [state, setState] = useState('');
   const [city, setCity] = useState('');
   const [niche, setNiche] = useState('');
 
-  const fetchCampaigns = () => {
-    setLoading(true);
+  const stateOptions = getMexicoStateOptions(state);
+  const cityOptions = getMexicoCitiesByState(state, city);
+
+  const buildSearchParams = () => {
     const params = new URLSearchParams();
     params.set('status', 'open');
+    if (state.trim()) params.set('state', state.trim());
     if (city.trim()) params.set('city', city.trim());
     if (niche) params.set('niche', niche);
+    return params;
+  };
+
+  const handleStateChange = (value: string) => {
+    const nextState = normalizeMexicoState(value) || '';
+    if (state !== nextState) {
+      setCity('');
+    }
+    setState(nextState);
+  };
+
+  const handleCityChange = (value: string) => {
+    setCity(normalizeMexicoCity(value) || '');
+  };
+
+  const fetchCampaigns = () => {
+    setLoading(true);
+    const params = buildSearchParams();
     api.get(`/campaigns?${params}`)
       .then((r) => setCampaigns(r.data))
       .catch(() => setCampaigns([]))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchCampaigns(); }, []);
+  useEffect(() => {
+    let active = true;
+    const params = new URLSearchParams();
+    params.set('status', 'open');
+
+    api.get(`/campaigns?${params}`)
+      .then((r) => {
+        if (active) setCampaigns(r.data);
+      })
+      .catch(() => {
+        if (active) setCampaigns([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,12 +85,25 @@ export default function CampaignsPublic() {
 
       {/* Filters */}
       <form onSubmit={handleSearch} className="flex flex-wrap gap-3 mb-8">
-        <div className="relative flex-1 min-w-[200px]">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          <input value={city} onChange={(e) => setCity(e.target.value)}
-            placeholder="Ciudad"
-            className="w-full pl-9 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm" />
-        </div>
+        <select
+          value={state}
+          onChange={(e) => handleStateChange(e.target.value)}
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-white min-w-[180px]"
+        >
+          <option value="">Estado</option>
+          {stateOptions.map((stateOption) => <option key={stateOption} value={stateOption}>{stateOption}</option>)}
+        </select>
+
+        <select
+          value={city}
+          onChange={(e) => handleCityChange(e.target.value)}
+          disabled={!state}
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-white min-w-[180px] disabled:bg-gray-50"
+        >
+          <option value="">{state ? 'Ciudad' : 'Primero selecciona estado'}</option>
+          {cityOptions.map((cityOption) => <option key={cityOption} value={cityOption}>{cityOption}</option>)}
+        </select>
+
         <select value={niche} onChange={(e) => setNiche(e.target.value)}
           className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-white min-w-[140px]">
           <option value="">Todos los nichos</option>

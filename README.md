@@ -156,6 +156,101 @@ Y usa:
 - `Entrar demo Negocio`
 - `Entrar demo Influencer`
 
+### 8. Quality Gate Manual
+
+Antes de mover cambios importantes o preparar una salida a produccion, corre este gate local:
+
+```bash
+make qa
+```
+
+Que valida hoy:
+- Lint de frontend (`eslint`)
+- Tests unitarios de backend (`pytest`)
+- Tests unitarios de frontend (`vitest`)
+- Build de frontend en modo produccion
+- Smoke test local del stack (`backend + frontend + health + auth local`)
+
+Tambien puedes correrlo por partes:
+
+```bash
+make test
+make smoke
+```
+
+Nota: por ahora este gate es manual. Mas adelante lo podemos llevar a GitHub Actions o a una ejecucion diaria programada.
+
+### 9. Health Check y alerta basica
+
+Health endpoint (backend):
+
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+
+Chequeo manual rapido:
+
+```bash
+make health-check
+```
+
+Monitoreo manual continuo (sin scheduling):
+
+```bash
+make health-watch
+```
+
+Opciones utiles:
+
+```bash
+make health-check HEALTH_URL=https://<API_DOMAIN>/api/health
+make health-watch HEALTH_URL=https://<API_DOMAIN>/api/health HEALTH_INTERVAL=60 MAX_FAILURES=2
+```
+
+Alerta basica opcional por webhook/comando:
+
+```bash
+ALERT_WEBHOOK=https://hooks.example.com/... make health-check
+ALERT_COMMAND='echo "api down"' make health-check
+```
+
+### 10. Release Readiness y Rollback
+
+Antes de desplegar a un ambiente online, corre:
+
+```bash
+make release-check ENV=dev
+```
+
+Si solo quieres validar localmente (sin checks remotos AWS/Terraform):
+
+```bash
+make release-check-local ENV=dev
+```
+
+Cuando el gate pase, despliegas con:
+
+```bash
+./scripts/deploy.sh dev
+./scripts/deploy-frontend.sh dev
+```
+
+Rollback operativo (ultima version estable conocida):
+
+```bash
+git checkout <KNOWN_GOOD_SHA>
+make qa
+./scripts/deploy.sh dev
+./scripts/deploy-frontend.sh dev
+git checkout -
+```
+
+Post-deploy minimo:
+
+```bash
+make health-check HEALTH_URL=https://<API_DOMAIN>/api/health
+```
+
 ## Remote Deploy
 
 Los scripts de `scripts/deploy.sh` y `scripts/deploy-frontend.sh` despliegan a AWS. No son necesarios para correr la app en local.

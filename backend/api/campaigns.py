@@ -3,9 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.auth import get_optional_current_user, require_role
+from core.location import normalize_mexico_city, normalize_mexico_location, normalize_mexico_state
 from models.models import (
     User,
     Campaign,
@@ -32,6 +34,101 @@ _CATEGORY_HINT = {
     BusinessCategory.hotel: "Hotel",
     BusinessCategory.cafe: "Cafe",
 }
+
+
+def _missing_publish_requirements(
+    *,
+    title: str | None,
+    budget: float | int | None,
+    city: str | None,
+    niche_required: Niche | None,
+) -> list[str]:
+    missing = []
+
+    if not title or len(title.strip()) < 3:
+        missing.append("titulo")
+
+    if budget is None or float(budget) <= 0:
+        missing.append("presupuesto")
+
+    if not city or not city.strip():
+        missing.append("ciudad")
+
+    if niche_required is None:
+        missing.append("nicho")
+
+    return missing
+
+
+def _ensure_publish_requirements(*, title: str | None, budget: float | int | None, city: str | None, niche_required: Niche | None):
+    missing = _missing_publish_requirements(
+        title=title,
+        budget=budget,
+        city=city,
+        niche_required=niche_required,
+    )
+
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail="Completa campos obligatorios para publicar: " + ", ".join(missing),
+        )
+
+
+def _normalize_campaign_location_fields(payload: dict) -> dict:
+    normalized = dict(payload)
+    has_city = "city" in normalized
+    has_state = "state" in normalized
+
+    if not has_city and not has_state:
+        return normalized
+
+    canonical_state, canonical_city = normalize_mexico_location(
+        normalized.get("state"),
+        normalized.get("city"),
+    )
+
+    if has_state:
+        normalized["state"] = canonical_state
+    if has_city:
+        normalized["city"] = canonical_city
+        if not has_state and canonical_state:
+            normalized["state"] = canonical_state
+
+    return normalized
+
+
+def _normalize_campaign_search_filters(
+    *,
+    city: str | None,
+    state: str | None,
+) -> tuple[str | None, str | None]:
+    return normalize_mexico_city(city), normalize_mexico_state(state)
+
+
+def _campaign_application_count_map(rows: list[tuple[UUID, int]]) -> dict[UUID, int]:
+    return {campaign_id: int(total or 0) for campaign_id, total in rows}
+
+
+def _get_campaign_application_counts(db: Session, campaign_ids: list[UUID]) -> dict[UUID, int]:
+    if not campaign_ids:
+        return {}
+
+    rows = db.query(
+        CampaignApplication.campaign_id,
+        func.count(CampaignApplication.id),
+    ).filter(
+        CampaignApplication.campaign_id.in_(campaign_ids),
+        CampaignApplication.is_deleted == False,
+    ).group_by(CampaignApplication.campaign_id).all()
+
+    return _campaign_application_count_map(rows)
+
+
+def _attach_application_counts(campaigns: list[Campaign], application_counts: dict[UUID, int]) -> list[Campaign]:
+    for campaign in campaigns:
+        setattr(campaign, "applications_count", application_counts.get(campaign.id, 0))
+    return campaigns
 
 
 def _short_text(value: str | None, max_words: int = 8, max_chars: int = 70) -> str:
@@ -99,7 +196,17 @@ def create_campaign(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    campaign_data = body.model_dump(exclude={"publish_now"})
+    campaign_data = _normalize_campaign_location_fields(
+        body.model_dump(exclude={"publish_now"})
+    )
+
+    if body.publish_now:
+        _ensure_publish_requirements(
+            title=campaign_data.get("title"),
+            budget=campaign_data.get("budget"),
+            city=campaign_data.get("city"),
+            niche_required=campaign_data.get("niche_required"),
+        )
 
     campaign = Campaign(
         business_user_id=user.id,
@@ -122,15 +229,19 @@ def list_my_campaigns(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return db.query(Campaign).filter(
+    campaigns = db.query(Campaign).filter(
         Campaign.business_user_id == user.id,
         Campaign.is_deleted == False,
     ).order_by(Campaign.created_at.desc()).all()
+
+    application_counts = _get_campaign_application_counts(db, [campaign.id for campaign in campaigns])
+    return _attach_application_counts(campaigns, application_counts)
 
 
 @router.get("", response_model=list[CampaignPublicResponse])
 def list_campaigns(
     city: str | None = Query(None),
+    state: str | None = Query(None),
     niche: Niche | None = Query(None),
     min_budget: float | None = Query(None, ge=0),
     max_budget: float | None = Query(None, ge=0),
@@ -140,13 +251,17 @@ def list_campaigns(
     db: Session = Depends(get_db),
 ):
     """Public view for influencers with optional applied state and anonymized business hints."""
+    city_filter, state_filter = _normalize_campaign_search_filters(city=city, state=state)
+
     query = db.query(Campaign).filter(
         Campaign.is_deleted == False,
         Campaign.status.in_([CampaignStatus.active, CampaignStatus.funded]),
     )
 
-    if city:
-        query = query.filter(Campaign.city.ilike(f"%{city}%"))
+    if city_filter:
+        query = query.filter(Campaign.city.ilike(f"%{city_filter}%"))
+    if state_filter:
+        query = query.filter(Campaign.state.ilike(f"%{state_filter}%"))
     if niche:
         query = query.filter(Campaign.niche_required == niche)
     if min_budget is not None:
@@ -201,6 +316,9 @@ def get_campaign(campaign_id: UUID, db: Session = Depends(get_db)):
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
 
+    application_counts = _get_campaign_application_counts(db, [campaign.id])
+    setattr(campaign, "applications_count", application_counts.get(campaign.id, 0))
+
     return campaign
 
 
@@ -226,6 +344,13 @@ def publish_campaign(
 
     if campaign.status in (CampaignStatus.canceled, CampaignStatus.completed):
         raise HTTPException(status_code=400, detail="Campaign cannot be published")
+
+    _ensure_publish_requirements(
+        title=campaign.title,
+        budget=float(campaign.budget) if campaign.budget is not None else None,
+        city=campaign.city,
+        niche_required=campaign.niche_required,
+    )
 
     campaign.status = CampaignStatus.active
     db.commit()
@@ -295,7 +420,7 @@ def update_campaign(
             detail="Only draft campaigns can be edited",
         )
 
-    update_data = body.model_dump(exclude_unset=True)
+    update_data = _normalize_campaign_location_fields(body.model_dump(exclude_unset=True))
     for field, value in update_data.items():
         setattr(campaign, field, value)
 

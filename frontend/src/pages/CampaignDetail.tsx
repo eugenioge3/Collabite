@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
+import { getApiErrorMessage } from '../lib/apiError';
 import type { CampaignPublic } from '../lib/types';
 import { ArrowLeft, MapPin, Calendar, Users, DollarSign, Loader } from 'lucide-react';
 
@@ -32,8 +33,8 @@ export default function CampaignPublicDetail() {
     try {
       await api.post(`/applications/campaigns/${id}/apply`, { message: message || null });
       setApplied(true);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al aplicar');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Error al aplicar'));
     } finally {
       setApplying(false);
     }

@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/apiError';
+import { getPublishCampaignValidationMessage } from '../../lib/campaignPublish';
+import {
+  getMexicoCitiesByState,
+  getMexicoStateOptions,
+  normalizeMexicoCity,
+  normalizeMexicoLocationSelection,
+  normalizeMexicoState,
+} from '../../lib/mxLocations';
 import type { Niche, Currency } from '../../lib/types';
 import { Loader } from 'lucide-react';
+import SupportChannelsCard from '../../components/ui/SupportChannelsCard';
 
 const NICHES: Niche[] = ['food', 'nightlife', 'travel', 'lifestyle', 'fitness'];
 const CURRENCIES: Currency[] = ['MXN', 'USD'];
@@ -28,9 +38,26 @@ export default function CreateCampaign() {
   const [loading, setLoading] = useState(false);
   const [submitMode, setSubmitMode] = useState<'draft' | 'publish'>('publish');
 
+  const stateOptions = getMexicoStateOptions(form.state);
+  const cityOptions = getMexicoCitiesByState(form.state, form.city);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextState = normalizeMexicoState(e.target.value) || '';
+    setForm((f) => ({
+      ...f,
+      state: nextState,
+      city: f.state === nextState ? f.city : '',
+    }));
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextCity = normalizeMexicoCity(e.target.value) || '';
+    setForm((f) => ({ ...f, city: nextCity }));
   };
 
   const addDeliverable = () => setForm((f) => ({
@@ -51,16 +78,33 @@ export default function CreateCampaign() {
 
   const submitCampaign = async (mode: 'draft' | 'publish' = 'publish') => {
     setError('');
+
+    if (mode === 'publish') {
+      const validationMessage = getPublishCampaignValidationMessage({
+        title: form.title,
+        budget: form.budget,
+        city: form.city,
+        niche_required: form.niche_required,
+      });
+
+      if (validationMessage) {
+        setError(validationMessage);
+        return;
+      }
+    }
+
     setLoading(true);
     setSubmitMode(mode);
     try {
+      const location = normalizeMexicoLocationSelection(form.state, form.city);
+
       const payload = {
-        title: form.title,
+        title: form.title.trim(),
         description: form.description || null,
         budget: parseFloat(form.budget),
         currency: form.currency,
-        city: form.city || null,
-        state: form.state || null,
+        city: location.city,
+        state: location.state,
         niche_required: form.niche_required || null,
         min_followers: parseInt(form.min_followers) || 0,
         max_followers: form.max_followers ? parseInt(form.max_followers) : null,
@@ -71,9 +115,15 @@ export default function CreateCampaign() {
         publish_now: mode === 'publish',
       };
       const res = await api.post('/campaigns', payload);
-      navigate(`/dashboard/business/campaigns/${res.data.id}`);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al crear campaña');
+      navigate(`/dashboard/business/campaigns/${res.data.id}`, {
+        state: {
+          notice: mode === 'publish'
+            ? 'Campaña publicada correctamente. Ya está visible para influencers.'
+            : 'Borrador guardado. Cuando quieras, entra y publica la campaña.',
+        },
+      });
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Error al crear campaña'));
     } finally {
       setLoading(false);
     }
@@ -87,6 +137,10 @@ export default function CreateCampaign() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Nueva campaña</h1>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 mb-4">
+        Flujo recomendado: 1) guarda borrador, 2) publica cuando tengas título, presupuesto, ciudad y nicho.
+      </div>
 
       {error && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
 
@@ -119,14 +173,36 @@ export default function CreateCampaign() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Ciudad</label>
-            <input name="city" value={form.city} onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+            <label className="block text-sm font-medium mb-1">Estado</label>
+            <select
+              name="state"
+              value={form.state}
+              onChange={handleStateChange}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white"
+            >
+              <option value="">Seleccionar</option>
+              {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
+            </select>
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">Nicho requerido</label>
+            <label className="block text-sm font-medium mb-1">Ciudad *</label>
+            <select
+              name="city"
+              value={form.city}
+              onChange={handleCityChange}
+              disabled={!form.state}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white disabled:bg-gray-50"
+            >
+              <option value="">{form.state ? 'Seleccionar' : 'Primero selecciona estado'}</option>
+              {cityOptions.map((city) => <option key={city} value={city}>{city}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Nicho requerido *</label>
             <select name="niche_required" value={form.niche_required} onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
               <option value="">Cualquiera</option>
@@ -189,6 +265,11 @@ export default function CreateCampaign() {
             {loading && submitMode === 'publish' ? 'Publicando...' : 'Publicar campaña'}
           </button>
         </div>
+
+        <SupportChannelsCard
+          title="Soporte durante la publicación"
+          description="Si tienes dudas de validaciones o de como publicar, escribenos por correo y te acompanamos para que tu campana salga hoy mismo."
+        />
       </form>
     </div>
   );

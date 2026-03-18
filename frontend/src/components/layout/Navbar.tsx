@@ -31,6 +31,9 @@ export default function Navbar() {
             <Link to="/rankings" className="text-gray-600 hover:text-primary transition">
               Rankings
             </Link>
+            <Link to="/faq" className="text-gray-600 hover:text-primary transition">
+              FAQ
+            </Link>
             {showOpsLink && (
               <Link to="/ops/verifications" className="text-gray-600 hover:text-primary transition">
                 Ops
@@ -86,6 +89,9 @@ export default function Navbar() {
           </Link>
           <Link to="/rankings" className="block text-gray-600" onClick={() => setMobileOpen(false)}>
             Rankings
+          </Link>
+          <Link to="/faq" className="block text-gray-600" onClick={() => setMobileOpen(false)}>
+            FAQ
           </Link>
           {showOpsLink && (
             <Link to="/ops/verifications" className="block text-gray-600" onClick={() => setMobileOpen(false)}>

@@ -2,17 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Campaign } from '../../lib/types';
+import { getCampaignStatusMeta } from '../../lib/campaignStatus';
 import { PlusCircle } from 'lucide-react';
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  funded: 'bg-blue-100 text-blue-700',
-  active: 'bg-green-100 text-green-700',
-  in_progress: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-indigo-100 text-indigo-700',
-  canceled: 'bg-red-100 text-red-700',
-  disputed: 'bg-orange-100 text-orange-700',
-};
 
 export default function BusinessCampaigns() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -95,23 +86,43 @@ export default function BusinessCampaigns() {
         </div>
       ) : (
         <div className="space-y-3">
-          {visibleCampaigns.map((c) => (
-            <Link key={c.id} to={`/dashboard/business/campaigns/${c.id}`}
-              className="block bg-white border rounded-lg p-4 hover:border-primary transition">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{c.title}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">{c.city || 'Sin ciudad'} · {c.niche_required || 'Sin nicho'}</p>
+          {visibleCampaigns.map((c) => {
+            const statusMeta = getCampaignStatusMeta(c.status);
+            const applicationsCount = c.applications_count ?? 0;
+            const hasApplicants = applicationsCount > 0;
+            const needsUnlock = hasApplicants && !c.escrow_funded && c.status !== 'draft';
+            const applicantsLabel = `${applicationsCount} candidata${applicationsCount === 1 ? '' : 's'} aplicaron`;
+
+            return (
+              <Link
+                key={c.id}
+                to={`/dashboard/business/campaigns/${c.id}`}
+                className="block bg-white border rounded-lg p-4 hover:border-primary transition"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{c.title}</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">{c.city || 'Sin ciudad'} · {c.niche_required || 'Sin nicho'}</p>
+                    <p className="text-xs text-gray-500 mt-2 line-clamp-1">{statusMeta.nextStep}</p>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4">
+                    <span className="font-semibold text-primary text-sm">${c.budget} {c.currency}</span>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusMeta.badgeClassName}`}>
+                      {statusMeta.label}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 ml-4">
-                  <span className="font-semibold text-primary text-sm">${c.budget} {c.currency}</span>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
-                    {c.status.replace('_', ' ')}
-                  </span>
+                <div className="mt-3 text-xs font-semibold text-primary">
+                  {statusMeta.ctaLabel}
                 </div>
-              </div>
-            </Link>
-          ))}
+                {hasApplicants && (
+                  <p className={`mt-1 text-xs ${needsUnlock ? 'text-amber-700' : 'text-gray-600'}`}>
+                    {needsUnlock ? `${applicantsLabel} · paga para desbloquear` : applicantsLabel}
+                  </p>
+                )}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

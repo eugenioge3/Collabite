@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.auth import require_role
+from core.location import normalize_mexico_city, normalize_mexico_state
 from models.models import User, InfluencerProfile, Niche
 from models.schemas import (
     InfluencerProfileUpdate,
@@ -48,12 +49,18 @@ def _alias_for_profile(profile: InfluencerProfile) -> str:
 def _apply_filters(
     query,
     city: str | None,
+    state: str | None,
     niche: Niche | None,
     min_followers: int,
     max_followers: int | None,
 ):
-    if city:
-        query = query.filter(InfluencerProfile.city.ilike(f"%{city}%"))
+    city_filter = normalize_mexico_city(city)
+    state_filter = normalize_mexico_state(state)
+
+    if city_filter:
+        query = query.filter(InfluencerProfile.city.ilike(f"%{city_filter}%"))
+    if state_filter:
+        query = query.filter(InfluencerProfile.state.ilike(f"%{state_filter}%"))
     if niche:
         query = query.filter(InfluencerProfile.niche == niche)
     if min_followers > 0:
@@ -109,6 +116,7 @@ def get_my_profile(
 @router.get("", response_model=list[InfluencerPublicRankingResponse])
 def search_influencers(
     city: str | None = Query(None),
+    state: str | None = Query(None),
     niche: Niche | None = Query(None),
     min_followers: int = Query(0, ge=0),
     max_followers: int | None = Query(None, ge=0),
@@ -121,7 +129,7 @@ def search_influencers(
         InfluencerProfile.is_deleted == False,
     )
 
-    query = _apply_filters(query, city, niche, min_followers, max_followers)
+    query = _apply_filters(query, city, state, niche, min_followers, max_followers)
 
     sort_col = getattr(InfluencerProfile, sort_by)
     query = query.order_by(sort_col.desc())
@@ -153,6 +161,7 @@ def search_influencers(
 @router.get("/private/rankings", response_model=list[InfluencerBusinessRankingResponse])
 def private_rankings_for_business(
     city: str | None = Query(None),
+    state: str | None = Query(None),
     niche: Niche | None = Query(None),
     min_followers: int = Query(0, ge=0),
     max_followers: int | None = Query(None, ge=0),
@@ -165,7 +174,7 @@ def private_rankings_for_business(
     query = db.query(InfluencerProfile).filter(
         InfluencerProfile.is_deleted == False,
     )
-    query = _apply_filters(query, city, niche, min_followers, max_followers)
+    query = _apply_filters(query, city, state, niche, min_followers, max_followers)
 
     sort_col = getattr(InfluencerProfile, sort_by)
     query = query.order_by(sort_col.desc())

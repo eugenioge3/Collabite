@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './hooks/useAuth';
+import { AuthProvider } from './hooks/AuthProvider';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import DashboardRedirect from './pages/DashboardRedirect';
 import InfluencerDashboard from './pages/influencer/Dashboard';
 import InfluencerProfile from './pages/influencer/Profile';
@@ -19,6 +20,7 @@ import InfluencerRankingsPrivate from './pages/business/InfluencerRankings';
 import CampaignsPublic from './pages/Campaigns';
 import CampaignPublicDetail from './pages/CampaignDetail';
 import Rankings from './pages/Rankings';
+import FaqPage from './pages/Faq';
 import VerifySocial from './pages/VerifySocial';
 import AdminVerifications from './pages/AdminVerifications';
 
@@ -32,9 +34,11 @@ export default function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/campaigns" element={<CampaignsPublic />} />
             <Route path="/campaigns/:id" element={<CampaignPublicDetail />} />
             <Route path="/rankings" element={<Rankings />} />
+            <Route path="/faq" element={<FaqPage />} />
 
             {/* Auth redirect */}
             <Route

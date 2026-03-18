@@ -1,8 +1,10 @@
 from uuid import UUID
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.auth import get_current_user, require_role
+from core.location import normalize_mexico_location
 from models.models import User, BusinessProfile
 from models.schemas import (
     BusinessProfileUpdate,
@@ -10,6 +12,59 @@ from models.schemas import (
 )
 
 router = APIRouter()
+
+
+def _normalize_text(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _normalize_business_updates(update_data: dict) -> dict:
+    normalized = dict(update_data)
+
+    for field in ["business_name", "city", "state", "country", "google_maps_url", "description"]:
+        if field in normalized:
+            normalized[field] = _normalize_text(normalized[field])
+
+    for field in ["instagram_handle", "tiktok_handle"]:
+        if field in normalized:
+            handle = _normalize_text(normalized[field])
+            normalized[field] = handle.lstrip("@") if handle else None
+
+    has_city = "city" in normalized
+    has_state = "state" in normalized
+    if has_city or has_state:
+        canonical_state, canonical_city = normalize_mexico_location(
+            normalized.get("state"),
+            normalized.get("city"),
+        )
+
+        if has_state:
+            normalized["state"] = canonical_state
+        if has_city:
+            normalized["city"] = canonical_city
+            if not has_state and canonical_state:
+                normalized["state"] = canonical_state
+
+    return normalized
+
+
+def _missing_required_profile_fields(profile: BusinessProfile, user: User, update_data: dict) -> list[str]:
+    business_name = update_data.get("business_name", profile.business_name)
+    category = update_data.get("category", profile.category)
+    city = update_data.get("city", profile.city)
+    email_alias = user.email.split("@")[0].strip().lower()
+
+    missing = []
+    if not business_name or business_name.strip().lower() == email_alias:
+        missing.append("nombre del negocio")
+    if not category:
+        missing.append("categoria")
+    if not city:
+        missing.append("ciudad")
+    return missing
 
 
 @router.get("/me", response_model=BusinessProfileResponse)
@@ -64,7 +119,18 @@ def update_my_profile(
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    update_data = body.model_dump(exclude_unset=True)
+    update_data = _normalize_business_updates(body.model_dump(exclude_unset=True))
+    missing_fields = _missing_required_profile_fields(profile, user, update_data)
+    if missing_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Completa los campos obligatorios para continuar: "
+                + ", ".join(missing_fields)
+                + "."
+            ),
+        )
+
     for field, value in update_data.items():
         setattr(profile, field, value)
 

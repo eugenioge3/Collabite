@@ -1,16 +1,28 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole } from '../lib/types';
+import { getApiErrorMessage } from '../lib/apiError';
+import { shouldPromptEmailVerification, translateLoginError } from '../lib/authMessages';
 import { Eye, EyeOff } from 'lucide-react';
+
+type LoginLocationState = {
+  message?: string;
+  unverifiedEmail?: string;
+};
 
 export default function Login() {
   const { login, devLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = (location.state ?? null) as LoginLocationState | null;
+  const successMessage = locationState?.message;
+  const unverifiedEmail = locationState?.unverifiedEmail;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [needsVerify, setNeedsVerify] = useState<string | null>(unverifiedEmail ?? null);
   const [loading, setLoading] = useState(false);
   const [devLoadingRole, setDevLoadingRole] = useState<UserRole | null>(null);
   const isDev = import.meta.env.DEV;
@@ -18,12 +30,18 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNeedsVerify(null);
     setLoading(true);
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión');
+    } catch (err: unknown) {
+      const msg = translateLoginError(err);
+      if (shouldPromptEmailVerification(err, msg)) {
+        setNeedsVerify(email);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -35,8 +53,8 @@ export default function Login() {
     try {
       await devLogin(role);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al iniciar demo local');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Error al iniciar demo local'));
     } finally {
       setDevLoadingRole(null);
     }
@@ -49,6 +67,25 @@ export default function Login() {
         <p className="text-gray-500 text-center mb-8">
           Bienvenido de vuelta a Collabite
         </p>
+
+        {successMessage && (
+          <div className="bg-green-50 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm">
+            {successMessage}
+          </div>
+        )}
+
+        {needsVerify && (
+          <div className="bg-yellow-50 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+            Tu correo no está verificado.{' '}
+            <Link
+              to="/verify-email"
+              state={{ email: needsVerify }}
+              className="font-semibold underline"
+            >
+              Verificar ahora
+            </Link>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 text-danger px-4 py-3 rounded-lg mb-4 text-sm">

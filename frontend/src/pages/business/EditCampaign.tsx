@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/apiError';
+import {
+  getMexicoCitiesByState,
+  getMexicoStateOptions,
+  normalizeMexicoCity,
+  normalizeMexicoLocationSelection,
+  normalizeMexicoState,
+} from '../../lib/mxLocations';
 import type { Campaign, Currency, Niche } from '../../lib/types';
 import { ArrowLeft, Loader } from 'lucide-react';
 
@@ -30,6 +38,9 @@ export default function EditCampaign() {
     includes: [''],
   });
 
+  const stateOptions = getMexicoStateOptions(form.state);
+  const cityOptions = getMexicoCitiesByState(form.state, form.city);
+
   useEffect(() => {
     if (!id) return;
     api.get(`/campaigns/${id}`)
@@ -40,13 +51,15 @@ export default function EditCampaign() {
           return;
         }
 
+        const location = normalizeMexicoLocationSelection(campaign.state, campaign.city);
+
         setForm({
           title: campaign.title,
           description: campaign.description || '',
           budget: String(campaign.budget),
           currency: campaign.currency,
-          city: campaign.city || '',
-          state: campaign.state || '',
+          city: location.city || '',
+          state: location.state || '',
           niche_required: campaign.niche_required || '',
           min_followers: String(campaign.min_followers || 0),
           max_followers: campaign.max_followers != null ? String(campaign.max_followers) : '',
@@ -56,8 +69,8 @@ export default function EditCampaign() {
           includes: campaign.includes.length > 0 ? campaign.includes : [''],
         });
       })
-      .catch((err: any) => {
-        setError(err.response?.data?.detail || 'No se pudo cargar la campaña');
+      .catch((err: unknown) => {
+        setError(getApiErrorMessage(err, 'No se pudo cargar la campaña'));
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -65,6 +78,20 @@ export default function EditCampaign() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextState = normalizeMexicoState(e.target.value) || '';
+    setForm((f) => ({
+      ...f,
+      state: nextState,
+      city: f.state === nextState ? f.city : '',
+    }));
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextCity = normalizeMexicoCity(e.target.value) || '';
+    setForm((f) => ({ ...f, city: nextCity }));
   };
 
   const addDeliverable = () => setForm((f) => ({
@@ -91,13 +118,15 @@ export default function EditCampaign() {
     setSaving(true);
 
     try {
+      const location = normalizeMexicoLocationSelection(form.state, form.city);
+
       const payload = {
         title: form.title,
         description: form.description || null,
         budget: parseFloat(form.budget),
         currency: form.currency,
-        city: form.city || null,
-        state: form.state || null,
+        city: location.city,
+        state: location.state,
         niche_required: form.niche_required || null,
         min_followers: parseInt(form.min_followers) || 0,
         max_followers: form.max_followers ? parseInt(form.max_followers) : null,
@@ -109,8 +138,8 @@ export default function EditCampaign() {
 
       await api.put(`/campaigns/${id}`, payload);
       navigate(`/dashboard/business/campaigns/${id}`);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo guardar el borrador');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo guardar el borrador'));
     } finally {
       setSaving(false);
     }
@@ -180,16 +209,34 @@ export default function EditCampaign() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Estado</label>
+            <select
+              name="state"
+              value={form.state}
+              onChange={handleStateChange}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white"
+            >
+              <option value="">Seleccionar</option>
+              {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Ciudad</label>
-            <input
+            <select
               name="city"
               value={form.city}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
-            />
+              onChange={handleCityChange}
+              disabled={!form.state}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white disabled:bg-gray-50"
+            >
+              <option value="">{form.state ? 'Seleccionar' : 'Primero selecciona estado'}</option>
+              {cityOptions.map((city) => <option key={city} value={city}>{city}</option>)}
+            </select>
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Nicho requerido</label>
             <select

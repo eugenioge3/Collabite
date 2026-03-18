@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/apiError';
+import { getCampaignStatusMeta } from '../../lib/campaignStatus';
+import { getCampaignPaymentSummary } from '../../lib/campaignPayment';
 import type { Campaign, Application } from '../../lib/types';
+import SupportChannelsCard from '../../components/ui/SupportChannelsCard';
 import {
   ArrowLeft,
   Users,
@@ -17,7 +21,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 
-const STATUS_COLORS: Record<string, string> = {
+const APPLICATION_STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   accepted: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
@@ -25,9 +29,15 @@ const STATUS_COLORS: Record<string, string> = {
   disputed: 'bg-orange-100 text-orange-800',
 };
 
+type CampaignDetailLocationState = {
+  notice?: string;
+};
+
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialNotice = ((location.state ?? null) as CampaignDetailLocationState | null)?.notice ?? '';
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +46,7 @@ export default function CampaignDetail() {
   const [paying, setPaying] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState(initialNotice);
 
   const loadData = async () => {
     if (!id) return;
@@ -66,8 +77,8 @@ export default function CampaignDetail() {
       setApplications((prev) =>
         prev.map((a) => a.id === appId ? res.data : a)
       );
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo actualizar la aplicación');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo actualizar la aplicación'));
     }
     setActionLoading(null);
   };
@@ -78,8 +89,8 @@ export default function CampaignDetail() {
     try {
       const res = await api.post(`/applications/${appId}/unlock-contact`);
       setApplications((prev) => prev.map((a) => (a.id === appId ? res.data : a)));
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo desbloquear el contacto');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo desbloquear el contacto'));
     }
     setActionLoading(null);
   };
@@ -91,8 +102,9 @@ export default function CampaignDetail() {
     try {
       const res = await api.post(`/campaigns/${id}/publish`);
       setCampaign(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo publicar la campaña');
+      setNotice('Campaña publicada correctamente. Ya está visible para influencers.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo publicar la campaña'));
     }
     setPublishing(false);
   };
@@ -106,8 +118,8 @@ export default function CampaignDetail() {
       setCampaign(res.data);
       const appsRes = await api.get(`/applications/campaign/${id}`).catch(() => ({ data: [] }));
       setApplications(appsRes.data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo completar el pago');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo completar el pago'));
     }
     setPaying(false);
   };
@@ -122,8 +134,8 @@ export default function CampaignDetail() {
     try {
       await api.delete(`/campaigns/${id}`);
       navigate('/dashboard/business/campaigns');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo eliminar la campana');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo eliminar la campana'));
       setDeleting(false);
     }
   };
@@ -131,8 +143,22 @@ export default function CampaignDetail() {
   if (loading) return <div className="flex justify-center py-20 text-gray-400">Cargando...</div>;
   if (!campaign) return <div className="text-center py-20 text-gray-400">Campaña no encontrada</div>;
 
+  const statusMeta = getCampaignStatusMeta(campaign.status);
+  const paymentSummary = getCampaignPaymentSummary({
+    budget: campaign.budget,
+    currency: campaign.currency,
+  });
+  const formatMoney = (amount: number) => new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: campaign.currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
   const canEditDraft = campaign.status === 'draft';
   const canDeletePublished = campaign.status === 'active' || campaign.status === 'funded';
+  const canPublishDraft = statusMeta.primaryAction === 'publish';
+  const canFundCampaign = statusMeta.primaryAction === 'fund_escrow';
+  const canReviewApplicants = statusMeta.primaryAction === 'review_applications';
   const needsPaymentToReview = !campaign.escrow_funded;
 
   return (
@@ -141,12 +167,61 @@ export default function CampaignDetail() {
         <ArrowLeft size={16} /> Volver a mis campañas
       </Link>
 
+      {notice && (
+        <div className="bg-green-50 text-green-700 border border-green-200 rounded-lg px-4 py-3 text-sm mb-4">
+          {notice}
+        </div>
+      )}
+
+      <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-gray-500">Estado actual</p>
+          <p className="font-semibold text-gray-900">{statusMeta.label}</p>
+          <p className="text-sm text-gray-600">{statusMeta.nextStep}</p>
+        </div>
+
+        <div className="shrink-0">
+          {canPublishDraft && (
+            <button
+              onClick={handlePublishCampaign}
+              disabled={publishing}
+              className="inline-flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-dark transition disabled:opacity-50"
+            >
+              {publishing ? <Loader className="animate-spin" size={14} /> : <Rocket size={14} />}
+              {publishing ? 'Publicando...' : statusMeta.ctaLabel}
+            </button>
+          )}
+
+          {canFundCampaign && (
+            <a
+              href="#payment-summary"
+              className="inline-flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition"
+            >
+              <CreditCard size={14} /> Ver total y pagar
+            </a>
+          )}
+
+          {canReviewApplicants && (
+            <a
+              href="#applications"
+              className="inline-flex items-center gap-1.5 border border-primary text-primary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/5 transition"
+            >
+              {statusMeta.ctaLabel}
+            </a>
+          )}
+
+          {statusMeta.primaryAction === 'none' && (
+            <span className="text-xs text-gray-500">Sin acciones pendientes</span>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white border rounded-lg p-6 mb-6">
         <div className="flex items-start justify-between mb-4">
           <h1 className="text-2xl font-bold">{campaign.title}</h1>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 capitalize">
-              {campaign.status.replace('_', ' ')}
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusMeta.badgeClassName}`}>
+              {statusMeta.label}
             </span>
 
             {canEditDraft && (
@@ -156,17 +231,6 @@ export default function CampaignDetail() {
               >
                 <Pencil size={12} /> Editar draft
               </Link>
-            )}
-
-            {canEditDraft && (
-              <button
-                onClick={handlePublishCampaign}
-                disabled={publishing}
-                className="inline-flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary-dark transition disabled:opacity-50"
-              >
-                {publishing ? <Loader className="animate-spin" size={12} /> : <Rocket size={12} />}
-                {publishing ? 'Publicando...' : 'Publicar'}
-              </button>
             )}
 
             {canDeletePublished && (
@@ -201,7 +265,7 @@ export default function CampaignDetail() {
       </div>
 
       {/* Applications */}
-      <div>
+      <div id="applications">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Users size={20} /> Aplicaciones ({applications.length})
         </h2>
@@ -213,19 +277,52 @@ export default function CampaignDetail() {
         )}
 
         {needsPaymentToReview ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
+          <div id="payment-summary" className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-900 mb-4 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
               <p className="font-semibold">{applications.length} influencers aplicaron</p>
               <p className="text-amber-800">Puedes ver previsualizaciones anonimas. Paga para desbloquear identidad y gestionar candidatos.</p>
+              </div>
+              <button
+                onClick={handleFundEscrow}
+                disabled={paying || campaign.status === 'draft'}
+                className="inline-flex items-center justify-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-50"
+              >
+                {paying ? <Loader className="animate-spin" size={14} /> : <CreditCard size={14} />}
+                {paying ? 'Procesando pago...' : 'Pagar y desbloquear'}
+              </button>
             </div>
-            <button
-              onClick={handleFundEscrow}
-              disabled={paying || campaign.status === 'draft'}
-              className="inline-flex items-center justify-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-50"
-            >
-              {paying ? <Loader className="animate-spin" size={14} /> : <CreditCard size={14} />}
-              {paying ? 'Procesando pago...' : 'Pagar y desbloquear'}
-            </button>
+
+            <div className="bg-white border border-amber-200 rounded-lg px-3 py-3 text-sm text-amber-900">
+              <p className="font-semibold mb-2">Resumen antes de pagar</p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span>Presupuesto base</span>
+                  <strong>{formatMoney(paymentSummary.budget)}</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Comision Collabite ({Math.round(paymentSummary.commissionRate * 100)}%)</span>
+                  <strong>{formatMoney(paymentSummary.commission)}</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Fee de pago ({(paymentSummary.paymentFeeRate * 100).toFixed(1)}% + {formatMoney(paymentSummary.paymentFeeFixed)})</span>
+                  <strong>{formatMoney(paymentSummary.paymentFee)}</strong>
+                </div>
+                <div className="h-px bg-amber-200 my-1" />
+                <div className="flex items-center justify-between text-base">
+                  <span className="font-semibold">Total a pagar hoy</span>
+                  <strong>{formatMoney(paymentSummary.total)}</strong>
+                </div>
+              </div>
+              <p className="text-xs text-amber-800 mt-2">
+                Transparencia de fee: la comision cubre uso de plataforma y el fee de pago corresponde al procesamiento seguro del cobro.
+              </p>
+            </div>
+
+            <SupportChannelsCard
+              title="Soporte antes de pagar y desbloquear"
+              description="Si necesitas confirmar montos, proceso de escrow o desbloqueo, escribenos por correo y respondemos rapido para que avances con confianza."
+            />
           </div>
         ) : (
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800 mb-4">
@@ -314,7 +411,7 @@ export default function CampaignDetail() {
                         </button>
                       </>
                     ) : (
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${STATUS_COLORS[a.status] || 'bg-gray-100'}`}>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${APPLICATION_STATUS_COLORS[a.status] || 'bg-gray-100'}`}>
                         {a.status}
                       </span>
                     )}

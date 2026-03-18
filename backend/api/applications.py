@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -287,7 +288,7 @@ def unlock_candidate_contact(
         raise HTTPException(status_code=400, detail="Cannot unlock a rejected application")
 
     app.contact_unlocked = True
-    app.contact_unlocked_at = app.contact_unlocked_at or app.updated_at
+    app.contact_unlocked_at = app.contact_unlocked_at or datetime.now(timezone.utc)
     db.commit()
     db.refresh(app)
 

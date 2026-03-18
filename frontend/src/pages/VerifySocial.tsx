@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../lib/api';
+import { getApiErrorMessage, getApiErrorStatus } from '../lib/apiError';
 import type {
   BusinessProfile,
   InfluencerProfile,
@@ -69,11 +70,11 @@ export default function VerifySocial() {
       });
       setStatusData(res.data);
       setError('');
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      if (getApiErrorStatus(err) === 404) {
         setStatusData(null);
       } else {
-        setError(err.response?.data?.detail || 'No se pudo consultar el estado');
+        setError(getApiErrorMessage(err, 'No se pudo consultar el estado'));
       }
     } finally {
       setLoadingStatus(false);
@@ -127,8 +128,8 @@ export default function VerifySocial() {
       });
       setInitData(res.data);
       await fetchStatus(platform);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'No se pudo iniciar verificación');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'No se pudo iniciar verificación'));
     } finally {
       setLoadingInit(false);
     }

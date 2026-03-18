@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional
 from datetime import datetime, date
 from uuid import UUID
@@ -44,6 +44,10 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class ResendCodeRequest(BaseModel):
+    email: EmailStr
+
+
 class AuthResponse(BaseModel):
     access_token: str
     id_token: str
@@ -52,14 +56,13 @@ class AuthResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     email: str
     role: UserRole
     verified: bool
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ── Business Profile ──────────────────────────────────────────────────────────
@@ -78,6 +81,8 @@ class BusinessProfileUpdate(BaseModel):
 
 
 class BusinessProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: UUID
     business_name: str
     category: Optional[BusinessCategory] = None
@@ -94,9 +99,6 @@ class BusinessProfileResponse(BaseModel):
     verified: bool
     subscription_status: SubscriptionStatus
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ── Influencer Profile ────────────────────────────────────────────────────────
@@ -115,6 +117,8 @@ class InfluencerProfileUpdate(BaseModel):
 
 
 class InfluencerProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: UUID
     display_name: str
     bio: Optional[str] = None
@@ -137,9 +141,6 @@ class InfluencerProfileResponse(BaseModel):
     verified: bool = False
     subscription_status: SubscriptionStatus = SubscriptionStatus.free
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class InfluencerPublicRankingResponse(BaseModel):
@@ -207,6 +208,8 @@ class CampaignUpdate(BaseModel):
 
 
 class CampaignResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     business_user_id: UUID
     title: str
@@ -222,16 +225,16 @@ class CampaignResponse(BaseModel):
     includes: list = []
     status: CampaignStatus
     escrow_funded: bool
+    applications_count: int = 0
     deadline: Optional[date] = None
     max_applicants: Optional[int] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 # Influencer-facing view: no business_user_id, no business_name
 class CampaignPublicResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     title: str
     description: Optional[str] = None
@@ -250,9 +253,6 @@ class CampaignPublicResponse(BaseModel):
     business_hint: Optional[str] = None
     already_applied: bool = False
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ── Application ───────────────────────────────────────────────────────────────
@@ -285,6 +285,8 @@ class ApplicationCandidateResponse(BaseModel):
 
 
 class ApplicationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     campaign_id: UUID
     influencer_user_id: UUID
@@ -297,9 +299,6 @@ class ApplicationResponse(BaseModel):
     candidate: Optional[ApplicationCandidateResponse] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 # ── Review ────────────────────────────────────────────────────────────────────
 
@@ -310,6 +309,8 @@ class ReviewCreate(BaseModel):
 
 
 class ReviewResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     reviewer_user_id: UUID
     reviewed_user_id: UUID
@@ -317,9 +318,6 @@ class ReviewResponse(BaseModel):
     rating: int
     comment: Optional[str] = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ── Social Verification ───────────────────────────────────────────────────────
