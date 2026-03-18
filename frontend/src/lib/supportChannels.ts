@@ -7,7 +7,7 @@ export type PilotSupportChannel = {
 };
 
 function normalizeEmail(value: string | undefined): string {
-  return value?.trim() || 'soporte@collabite.mx';
+  return value?.trim() || 'contact@blahchat.mx';
 }
 
 const supportEmail = normalizeEmail(import.meta.env.VITE_SUPPORT_EMAIL);
